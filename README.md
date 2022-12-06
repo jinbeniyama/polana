@@ -15,8 +15,9 @@ Please install by pip, otherwise open paths to src and dipolana directories by y
 
 ## Acknowledgments
 I would like to express the gratitude to the people involved in T60/DIPOL-2.
+
 The DIPOL-2 paper is 
-[Piirola et al. (2014), DAMIT: DIPOL-2: a double image high precision polarimeter, Proceedings of the SPIE, Volume 9147, id. 91478I 9 pp.](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract).
+[Piirola et al. (2014), DIPOL-2: a double image high precision polarimeter, Proceedings of the SPIE, Volume 9147, id. 91478I 9 pp](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract).
 
 
 ## Dependencies
