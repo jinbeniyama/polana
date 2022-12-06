@@ -6,7 +6,8 @@ The number of input fits for 1 cycle is 16.
 
 Example
 -------
-phot_dipol.py urat1-473022538_001[7-9]R.fts urat1-473022538_002*R.fts urat1-473022538_003[0-2]R.fts --band R --xr 200 550 --yr 100 350
+# Results are saved in 'mag13star' directory
+phot_dipol.py urat1-473022538_001[7-9]R.fts urat1-473022538_002*R.fts urat1-473022538_003[0-2]R.fts --band R  --radius 20 --xr 200 550 --yr 100 350 --outdir mag13star
 """
 import os
 import sys
