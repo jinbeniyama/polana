@@ -58,7 +58,7 @@ if __name__ == "__main__":
     print(f"  Aperture radius {radius} pix")
     print(f"  filter {band}-band")
 
-    key_time = "EXPTIME"
+    key_texp = "EXPTIME"
     key_date = "DATE-OBS"
     key_ut = "UT-STR"
     # 0, 45, 22.5, 67.5
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                 ny, nx = img.shape[0], img.shape[1]
                 print(f"    Data dimension nx, ny = {nx}, {ny}")
                 # Exposure time
-                t_exp = src.header[key_time]
+                t_exp = src.header[key_texp]
                 print(f"    Exposure time {t_exp} s")
 
                 
