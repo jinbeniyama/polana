@@ -150,7 +150,8 @@ if __name__ == "__main__":
         # Save photometry region
         out = f"photregion_{fi.split('.')[0]}.png"
         out = os.path.join(outdir, out)
-        plot_region(img, bgerr, x_o, y_o, x_e, y_e, radius, out)
+        title = f"{fi} radius={radius}"
+        plot_region(img, bgerr, x_o, y_o, x_e, y_e, radius, title, out)
         # Source detection ====================================================
 
 
