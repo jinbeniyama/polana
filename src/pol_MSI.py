@@ -253,23 +253,37 @@ if __name__ == "__main__":
                 # Orbinary + Extra-ordinary 2 sources
                 print(f"{N_obj} objects detected on {idx_fi+1}-th fits {fi}.")
                 
-                x_o = df_in.at[idx_set*N_fits_per_set+idx_fi, "xo"]
-                y_o = df_in.at[idx_set*N_fits_per_set+idx_fi, "yo"]
-                x_e = df_in.at[idx_set*N_fits_per_set+idx_fi, "xe"]
-                y_e = df_in.at[idx_set*N_fits_per_set+idx_fi, "ye"]
+                # Original coordinates
+                xo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xo"]
+                yo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "yo"]
+                xe0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xe"]
+                ye0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "ye"]
+
+                # Search the most suitable objects
+                x_base, y_base = objects["x"], objects["y"]
+                tree_base = KDTree(list(zip(x_base, y_base)), leafsize=10)
+                # Ordinary
+                res_o = tree_base.query_ball_point((xo0, yo0), radius)
+                # Extra-ordinary
+                res_e = tree_base.query_ball_point((xe0, ye0), radius)
+
+                # New barycenters
+                xo1, yo1 = res_o
+                xe1, ye1 = res_e
+                assert False, xo1
+                # TODO: Calculate gain 
                 # Source detection ====================================================
 
-                # TODO: barycenter
 
                 # Do photometry =======================================================
                 # In ADU, 
                 # fluxerr**2 = bgerr_per_pix**2*N_pix + Poission**2
                 #            = bgerr_per_pix**2*N_pix + (flux*gain)/gain**2
                 flux_o, fluxerr_o, eflag_o = sep.sum_circle(
-                    img, [x_o], [y_o], r=radius, err=bgerr, gain=gain)
+                    img, [xo1], [yo1], r=radius, err=bgerr, gain=gain)
                 flux_o, fluxerr_o = float(flux_o), float(fluxerr_o)
                 flux_e, fluxerr_e, eflag_e = sep.sum_circle(
-                    img, [x_e], [y_e], r=radius, err=bgerr, gain=gain)
+                    img, [xe1], [ye1], r=radius, err=bgerr, gain=gain)
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
                 # Do photometry =====================================================
 
