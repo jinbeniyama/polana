@@ -1,13 +1,10 @@
-# DIPOL-2 analysis (dipolana)
+# Polarimetric analysis (polana)
 [developer mail](mailto:beniyama@ioa.s.u-tokyo.ac.jp)
-
-[Document in Japanese](http://www.ioa.s.u-tokyo.ac.jp/~beniyama/pdf/DAMIT_JB.pdf)
-
 
 Photo from Piirola et al. (2014).
 
 ## Overview
-Analyze data obtained with DIPOL-2.
+Analyze data obtained with MSI, WFGS2, HONIR, and DIPOL-2.
 
 ## Installing
 Please install by pip, otherwise open paths to src and dipolana directories by yourself.
@@ -26,4 +23,3 @@ Scripts are developed on `Python 3.7.10`, `NumPy 1.19.2`, `SciPy 1.6.1`,
 `SEP 1.0.3`, and `Astropy 4.2`.
 
 ## LICENCE
-This software is released under the XX License.
