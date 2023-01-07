@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
 from datetime import datetime
+from scipy.spatial import KDTree
 import sep
 import astropy.io.fits as fits
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
          
         for idx_set in range(N_set):
             print("")
-            print(f"Start analysis of {idx_set+1}-th set")
+            print(f"Start analysis of {idx_set+1}/{N_set}-th set")
             # List to save results 
             df_res_list = []
             for idx_fi in range(N_fits_per_set):
@@ -149,18 +150,21 @@ if __name__ == "__main__":
                 xe0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xe"]
                 ye0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "ye"]
 
-                # Search the most suitable objects
-                x_base, y_base = objects["x"], objects["y"]
-                tree_base = KDTree(list(zip(x_base, y_base)), leafsize=10)
-                # Ordinary
-                res_o = tree_base.query_ball_point((xo0, yo0), radius)
-                # Extra-ordinary
-                res_e = tree_base.query_ball_point((xe0, ye0), radius)
+                # # Search the most suitable objects
+                # x_base, y_base = objects["x"], objects["y"]
+                # tree_base = KDTree(list(zip(x_base, y_base)), leafsize=10)
+                # # Ordinary
+                # res_o = tree_base.query_ball_point((xo0, yo0), radius)
+                # # Extra-ordinary
+                # res_e = tree_base.query_ball_point((xe0, ye0), radius)
 
-                # New barycenters
-                xo1, yo1 = res_o
-                xe1, ye1 = res_e
-                assert False, xo1
+                # # New barycenters
+                # xo1, yo1 = res_o
+                # xe1, ye1 = res_e
+                # assert False, xo1
+
+                xo1, yo1 = xo0, yo0
+                xe1, ye1 = xe0, ye0
                 # TODO: Calculate gain 
                 # Source detection ====================================================
 
@@ -175,6 +179,8 @@ if __name__ == "__main__":
                 flux_e, fluxerr_e, eflag_e = sep.sum_circle(
                     img, [xe1], [ye1], r=radius, err=bgerr, gain=gain)
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
+
+                print(f"Ratio e/o = {flux_e/flux_o}")
                 # Do photometry =====================================================
 
 
