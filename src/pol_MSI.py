@@ -41,6 +41,15 @@ if __name__ == "__main__":
         "--radius", type=float, default=10, 
         help="aperture radius in pixel")
     parser.add_argument(
+        "--ann", action='store_true', default=False,
+        help='Do photometry with annulus')
+    parser.add_argument(
+        "--ann_gap", type=float, default=2, 
+        help="gap between annulus and circle ")
+    parser.add_argument(
+        "--ann_width", type=float, default=3, 
+        help="width of annulus")
+    parser.add_argument(
         "--band", type=str, default="R", 
         help="Filter (to set gain)")
     parser.add_argument(
@@ -92,21 +101,10 @@ if __name__ == "__main__":
 
                 # TODO:update
                 # Set inverse gain
-                # Read EGAIN in fits header
-                # ex) EGAIN   =   1.5199999809265137 /Electronic gain in e-/ADU
-                # Based on Nakamura-san's M thesis
-                #   R-band gain = 1.48
-                #   V-band gain = 1.46
-                #   B-band gain = 0
-                # Based on JB's check on the data obtained on 2022-11-23
-                #   R-band gain = 1.52
-                #   V-band gain = 1.48
-                #   B-band gain = ? (no EGAIN keyword in the fits)
+                # Read GAIN in fits header
+                # ex) GAIN    =                 1.65 / [electrons/DN] Effective AD conversion factor
 
-                if band == "R":
-                    gain = 0
-                else:
-                    gain = hdr["EGAIN"]
+                gain = hdr[key_gain]
                 
                 # Read 2-d image
                 img = src.data
@@ -125,8 +123,13 @@ if __name__ == "__main__":
                 img = img.astype(np.float32)
                 #print(f"Original Mean: {np.mean(img)}")
                 #print(f"Original Median: {np.median(img)}")
-                img, bg_info = remove_background2d_pol(img)
-                bgerr = np.round(bg_info["rms"], 2)
+                if args.ann:
+                    print("    !! Do not subtract background !!")
+                    # Temporally
+                    bgerr = 0
+                else:
+                    img, bg_info = remove_background2d_pol(img)
+                    bgerr = np.round(bg_info["rms"], 2)
                 #print("")
                 #print(f"Subtracted Mean: {np.mean(img)}")
                 #print(f"Subtracted Median: {np.median(img)}")
@@ -173,17 +176,24 @@ if __name__ == "__main__":
 
 
                 # Do photometry =======================================================
+                if args.ann:
+                    ann_gap = args.ann_gap
+                    ann_width = args.ann_width
+                    bkgann  = (radius + ann_gap, radius + ann_gap + ann_width)
+                else:
+                    bkgann = None
                 # In ADU, 
                 # fluxerr**2 = bgerr_per_pix**2*N_pix + Poission**2
                 #            = bgerr_per_pix**2*N_pix + (flux*gain)/gain**2
                 flux_o, fluxerr_o, eflag_o = sep.sum_circle(
-                    img, [xo1], [yo1], r=radius, err=bgerr, gain=gain)
+                    img, [xo1], [yo1], r=radius, err=bgerr, gain=gain,
+                    bkgann=bkgann)
                 flux_o, fluxerr_o = float(flux_o), float(fluxerr_o)
                 print(f" xo0, yo0 = {xo0}, {yo0}")
                 print(f"  flux_o, fluxerr_o, SNR_o = {flux_o:.2f}, {fluxerr_o:.2f}, {flux_o/fluxerr_o:.1f}")
-                assert False, 1
                 flux_e, fluxerr_e, eflag_e = sep.sum_circle(
-                    img, [xe1], [ye1], r=radius, err=bgerr, gain=gain)
+                    img, [xe1], [ye1], r=radius, err=bgerr, gain=gain,
+                    bkgann=bkgann)
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
 
                 print(f"Ratio e/o = {flux_e/flux_o}")
