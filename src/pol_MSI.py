@@ -9,16 +9,14 @@ xo yo xe ye fits
 .
 """
 import os
-import sys
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
-from datetime import datetime
 from scipy.spatial import KDTree
 import sep
 import astropy.io.fits as fits
 
-from dipolana.util import *
+from polana.util import *
 
 
 if __name__ == "__main__":
@@ -28,11 +26,14 @@ if __name__ == "__main__":
         "obj", type=str, 
         help="Object name")
     parser.add_argument(
-        "loc", type=str, 
-        help="Observation location (MPC code)")
-    parser.add_argument(
         "inp", type=str, nargs="*",
         help="Input file with certain format")
+    parser.add_argument(
+        "--loc", type=str, default="Q33",
+        help="Observation location (MPC code)")
+    parser.add_argument(
+        "--mp", action='store_true',
+        help='Save phase angle in the output for minor planet')
     parser.add_argument(
         "--fitsdir", type=str, default=".",
         help="Fits directory")
@@ -64,6 +65,8 @@ if __name__ == "__main__":
     key_ut = "UT-STR"
     # 0, 45, 22.5, 67.5
     key_ang = "RET-ANG2"
+    # Inverse gain e/ADU
+    key_gain = "GAIN"
     
     
     alpha_list, P_list, Perr_list = [], [], []
@@ -122,7 +125,7 @@ if __name__ == "__main__":
                 img = img.astype(np.float32)
                 #print(f"Original Mean: {np.mean(img)}")
                 #print(f"Original Median: {np.median(img)}")
-                img, bg_info = remove_background2d_Dipol2(img)
+                img, bg_info = remove_background2d_pol(img)
                 bgerr = np.round(bg_info["rms"], 2)
                 #print("")
                 #print(f"Subtracted Mean: {np.mean(img)}")
@@ -176,6 +179,9 @@ if __name__ == "__main__":
                 flux_o, fluxerr_o, eflag_o = sep.sum_circle(
                     img, [xo1], [yo1], r=radius, err=bgerr, gain=gain)
                 flux_o, fluxerr_o = float(flux_o), float(fluxerr_o)
+                print(f" xo0, yo0 = {xo0}, {yo0}")
+                print(f"  flux_o, fluxerr_o, SNR_o = {flux_o:.2f}, {fluxerr_o:.2f}, {flux_o/fluxerr_o:.1f}")
+                assert False, 1
                 flux_e, fluxerr_e, eflag_e = sep.sum_circle(
                     img, [xe1], [ye1], r=radius, err=bgerr, gain=gain)
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
@@ -235,15 +241,16 @@ if __name__ == "__main__":
         
             # Calculate linera polarization degree P
             P, Perr = calc_P_4angle(df_res)
-            print(f"  polarization degree P = {P:.3f}+-{Perr:.3f}")
+            print(f"  polarization degree P = {P:.4f}+-{Perr:.4f}")
             P_list.append(P)
             Perr_list.append(Perr)
 
-            # Obtain phase angle with object name
-            # Use the first time
-            ut = df_res.at[0, "utc"]
-            alpha = utc2alpha(args.obj, ut, args.loc)
-            alpha_list.append(alpha)
+            if args.mp:
+                # Obtain phase angle with object name
+                # Use the first time
+                ut = df_res.at[0, "utc"]
+                alpha = utc2alpha(args.obj, ut, args.loc)
+                alpha_list.append(alpha)
 
         
         # Round parameters
@@ -253,7 +260,12 @@ if __name__ == "__main__":
         else:
             out = "polres_MSI.txt"
         out = os.path.join(outdir, out)
-        df_all = pd.DataFrame(dict(
-            alpha=alpha_list, P=P_list, Perr=Perr_list
+        if args.mp:
+            df_all = pd.DataFrame(dict(
+                alpha=alpha_list, P=P_list, Perr=Perr_list
+                ))
+        else:
+            df_all = pd.DataFrame(dict(
+                P=P_list, Perr=Perr_list
             ))
         df_all.to_csv(out, sep=" ", index=False)
