@@ -17,6 +17,7 @@ import sep
 import astropy.io.fits as fits
 
 from polana.util import *
+from polana.visualization import mycolor, myls
 
 
 if __name__ == "__main__":
@@ -58,10 +59,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out", type=str, default=None,
         help="Output filename")
+    parser.add_argument(
+        "-p", "--photmap", action='store_true',
+        help='create photometry region map (a bit slow)')
+    parser.add_argument(
+        "--width", type=int, default=50,
+        help="x and y width in pixel")
     args = parser.parse_args()
     
     outdir = args.outdir
     os.makedirs(outdir, exist_ok=True)
+
+    ## Output photometry region png in the directory
+    if args.photmap:
+        photmapdir = os.path.join(outdir, "photregion")
+        os.makedirs(photmapdir, exist_ok=True)
 
     fitsdir = args.fitsdir
     radius = args.radius
@@ -99,11 +111,9 @@ if __name__ == "__main__":
                 src = fits.open(fi_path)[0]
                 hdr = src.header 
 
-                # TODO:update
                 # Set inverse gain
                 # Read GAIN in fits header
                 # ex) GAIN    =                 1.65 / [electrons/DN] Effective AD conversion factor
-
                 gain = hdr[key_gain]
                 
                 # Read 2-d image
@@ -114,68 +124,97 @@ if __name__ == "__main__":
                 t_exp = src.header[key_texp]
                 print(f"    Exposure time {t_exp} s")
 
-                
-                # Save photometry info.
-                info = dict()
-               
-                # Background subtraction ==============================================
-                # Convert to float to suppress error
-                img = img.astype(np.float32)
-                #print(f"Original Mean: {np.mean(img)}")
-                #print(f"Original Median: {np.median(img)}")
-                if args.ann:
-                    print("    !! Do not subtract background !!")
-                    # Temporally
-                    bgerr = 0
-                else:
-                    img, bg_info = remove_background2d_pol(img)
-                    bgerr = np.round(bg_info["rms"], 2)
-                #print("")
-                #print(f"Subtracted Mean: {np.mean(img)}")
-                #print(f"Subtracted Median: {np.median(img)}")
-                #print(f"Estimated sky error per pixel is {bgerr} [ADU]")
-                #print("")
-                info["gloabalrms"] = bgerr
-                info["level_mean"] = np.mean(img)
-                info["level_median"] = np.median(img)
-                # Background subtraction ==============================================
-
-
-                # Source detection ====================================================
-                # 5-sigma detection
-                dth     = 5
-                minarea = 15
-                objects = extract(img, dth, minarea, bgerr, mask=None)
-                N_obj   = len(objects)
-                # Orbinary + Extra-ordinary 2 sources
-                print(f"{N_obj} objects detected on {idx_fi+1}-th fits {fi}.")
-                
                 # Original coordinates
                 xo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xo"]
                 yo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "yo"]
                 xe0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xe"]
                 ye0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "ye"]
 
-                # # Search the most suitable objects
-                # x_base, y_base = objects["x"], objects["y"]
-                # tree_base = KDTree(list(zip(x_base, y_base)), leafsize=10)
-                # # Ordinary
-                # res_o = tree_base.query_ball_point((xo0, yo0), radius)
-                # # Extra-ordinary
-                # res_e = tree_base.query_ball_point((xe0, ye0), radius)
+                # Use around width from (xo0, yo0) and (xe0, ye0)
+                wi = args.width/2.0
 
-                # # New barycenters
-                # xo1, yo1 = res_o
-                # xe1, ye1 = res_e
-                # assert False, xo1
+                xmin_e, xmax_e = xe0 - wi - 1, xe0 + wi
+                ymin_e, ymax_e = ye0 - wi - 1, ye0 + wi
+                xmin_e, xmax_e = int(xmin_e), int(xmax_e)
+                ymin_e, ymax_e = int(ymin_e), int(ymax_e)
+                img_e = img[ymin_e:ymax_e, xmin_e:xmax_e]
 
-                xo1, yo1 = xo0, yo0
-                xe1, ye1 = xe0, ye0
-                # TODO: Calculate gain 
-                # Source detection ====================================================
+                xmin_o, xmax_o = xo0 - wi - 1, xo0 + wi
+                ymin_o, ymax_o = yo0 - wi - 1, yo0 + wi
+                xmin_o, xmax_o = int(xmin_o), int(xmax_o)
+                ymin_o, ymax_o = int(ymin_o), int(ymax_o)
+                img_o = img[ymin_o:ymax_o, xmin_o:xmax_o]
+
+                # Save photometry info.
+                info = dict()
+                
+                # Do not work well for MSI data !
+                # Background subtraction ======================================
+                # Convert to float to suppress error
+                img_e = img_e.astype(np.float32)
+                img_o = img_o.astype(np.float32)
+                #print(f"Original Mean: {np.mean(img)}")
+                #print(f"Original Median: {np.median(img)}")
+                if args.ann:
+                    print("    !! Do not subtract background with sep!!")
+                    print(f"    !! Simply subtract median {np.median(img):.1f} ADU!!")
+                    # For error calculation in sep.sum_circle
+                    bgerr = 0
+
+                else:
+                    img_e, bg_info_e = remove_background2d_pol(img_e)
+                    img_o, bg_info_o = remove_background2d_pol(img_o)
+                    bgerr_e = np.round(bg_info_e["rms"], 2)
+                    bgerr_o = np.round(bg_info_o["rms"], 2)
+
+                #print("")
+                #print(f"Subtracted Mean: {np.mean(img)}")
+                #print(f"Subtracted Median: {np.median(img)}")
+                #print(f"Estimated sky error per pixel is {bgerr} [ADU]")
+                #print("")
+                info["gloabalrms_e"] = bgerr_e
+                info["gloabalrms_o"] = bgerr_o
+                info["level_mean_e"] = np.mean(img_e)
+                info["level_mean_o"] = np.mean(img_o)
+                info["level_median_e"] = np.median(img_e)
+                info["level_median_o"] = np.median(img_o)
+                # Background subtraction ======================================
 
 
-                # Do photometry =======================================================
+                # Source detection for baricentric search =====================
+                # Assuming background subtracted
+                # 5-sigma detection
+                dth     = 5
+                minarea = 10
+                objects_e = sep.extract(img_e, dth, err=bgerr_e, minarea=minarea, mask=None)
+                objects_o = sep.extract(img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
+                N_obj_e   = len(objects_e)
+                N_obj_o   = len(objects_o)
+                assert N_obj_e == 1, "Check the coordinates"
+                assert N_obj_o == 1, "Check the coordinates"
+
+                # Search the baricenters after cut and bgsub
+                print(f"  Aperture location after baricenter search")
+                # Ordinary
+                xo1, yo1 = objects_o["x"][0], objects_o["y"][0]
+                xo1_full = xo1 + xmin_o
+                yo1_full = yo1 + ymin_o
+                print(f"    xo0, yo0 = {xo0:.2f}, {yo0:.2f}")
+                print(f"    xo1, yo1 = {xo1:.2f}, {yo1:.2f}")
+
+                # Extra-ordinary
+                xe1, ye1 = objects_e["x"][0], objects_e["y"][0]
+                # In original image
+                xe1_full = xe1 + xmin_e
+                ye1_full = ye1 + ymin_e
+                print(f"  Aperture location after baricenter search")
+                print(f"    xe0, ye0 = {xe0:.2f}, {ye0:.2f}")
+                print(f"    xe1, ye1 = {xe1_full:.2f}, {ye1_full:.2f}")
+
+                # Source detection ============================================
+
+
+                # Do photometry ===============================================
                 if args.ann:
                     ann_gap = args.ann_gap
                     ann_width = args.ann_width
@@ -186,21 +225,66 @@ if __name__ == "__main__":
                 # fluxerr**2 = bgerr_per_pix**2*N_pix + Poission**2
                 #            = bgerr_per_pix**2*N_pix + (flux*gain)/gain**2
                 flux_o, fluxerr_o, eflag_o = sep.sum_circle(
-                    img, [xo1], [yo1], r=radius, err=bgerr, gain=gain,
+                    img_o, [xo1], [yo1], r=radius, err=bgerr_o, gain=gain,
                     bkgann=bkgann)
                 flux_o, fluxerr_o = float(flux_o), float(fluxerr_o)
                 print(f" xo0, yo0 = {xo0}, {yo0}")
                 print(f"  flux_o, fluxerr_o, SNR_o = {flux_o:.2f}, {fluxerr_o:.2f}, {flux_o/fluxerr_o:.1f}")
                 flux_e, fluxerr_e, eflag_e = sep.sum_circle(
-                    img, [xe1], [ye1], r=radius, err=bgerr, gain=gain,
+                    img_e, [xe1], [ye1], r=radius, err=bgerr_e, gain=gain,
                     bkgann=bkgann)
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
 
                 print(f"Ratio e/o = {flux_e/flux_o}")
-                # Do photometry =====================================================
+                # Do photometry ===============================================
 
 
-                # Noise calculation ===================================================
+                # Plot photometry region ======================================
+                if args.photmap:
+                    out = os.path.join(photmapdir, f"{fi}_photmap.png")
+                    label_o = f"{args.obj} (xo, yo)=({xo1_full:.1f}, {yo1_full:.1f})"
+                    label_e = f"{args.obj} (xe, ye)=({xe1_full:.1f}, {ye1_full:.1f})"
+
+                    color_o, color_e = mycolor[0], mycolor[1]
+                    ls = myls[0]
+
+                    # Plot src image after 5-sigma clipping 
+                    sigma = 5
+                    _, vmin, vmax = sigmaclip(img, sigma, sigma)
+
+                    fig = plt.figure(figsize=(12,int(12*ny/nx)))
+                    ax = fig.add_subplot(111)
+                    ax.imshow(img, cmap='gray', vmin=vmin, vmax=vmax)
+
+                    # Ordainary
+                    ax.scatter(
+                        xo1_full, yo1_full, color=color_o, s=radius, lw=1, 
+                        facecolor="None", alpha=1, label=label_o)
+                    ax.add_collection(PatchCollection(
+                        [Circle((xo1_full, yo1_full), radius)], color=color_o, ls=ls, 
+                        lw=1, facecolor="None", label=None)
+                        )
+
+                    # Extra-ordainary
+                    ax.scatter(
+                        xe1_full, ye1_full, color=color_e, s=radius, lw=1, 
+                        facecolor="None", alpha=1, label=label_e)
+                    ax.add_collection(PatchCollection(
+                        [Circle((xe1_full, ye1_full), radius)], color=color_e, ls=ls, 
+                        lw=1, facecolor="None", label=None)
+                        )
+
+                    ax.set_xlim([0, nx])
+                    ax.set_ylim([0, ny])
+                    ax.legend().get_frame().set_alpha(1.0)
+                    ax.invert_yaxis()
+                    plt.tight_layout()
+                    plt.savefig(out, dpi=200)
+                    plt.close()
+                # Plot photometry region ======================================
+
+
+                # Noise calculation ===========================================
                 # if idx_fi == 0:
                 #     ## Background noise (sum of background + readout)
                 #     med, std = np.median(img), np.std(img)
