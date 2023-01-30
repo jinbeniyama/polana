@@ -10,16 +10,14 @@ xo yo xe ye fits
 .
 """
 import os
-import sys
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
-from datetime import datetime
 from scipy.spatial import KDTree
 import sep
 import astropy.io.fits as fits
 
-from dipolana.util import *
+from polana.util import *
 
 
 if __name__ == "__main__":
@@ -29,17 +27,29 @@ if __name__ == "__main__":
         "obj", type=str, 
         help="Object name")
     parser.add_argument(
-        "loc", type=str, 
-        help="Observation location (MPC code)")
-    parser.add_argument(
         "inp", type=str, nargs="*",
         help="Input file with certain format")
+    parser.add_argument(
+        "--loc", type=str, default="371",
+        help="Observation location (MPC code)")
+    parser.add_argument(
+        "--mp", action='store_true',
+        help='Save phase angle in the output for minor planet')
     parser.add_argument(
         "--fitsdir", type=str, default=".",
         help="Fits directory")
     parser.add_argument(
         "--radius", type=float, default=10, 
         help="aperture radius in pixel")
+    parser.add_argument(
+        "--ann", action='store_true', default=False,
+        help='Do photometry with annulus')
+    parser.add_argument(
+        "--ann_gap", type=float, default=2, 
+        help="gap between annulus and circle ")
+    parser.add_argument(
+        "--ann_width", type=float, default=3, 
+        help="width of annulus")
     parser.add_argument(
         "--band", type=str, default="R", 
         help="Filter (to set gain)")
@@ -60,14 +70,13 @@ if __name__ == "__main__":
     print(f"  Aperture radius {radius} pix")
     print(f"  filter {band}-band")
 
-    # Fits header keywords ====================================================
-    # TODO: check
     key_texp = "EXPTIME"
     key_date = "DATE-OBS"
     key_ut = "UT-STR"
     # 0, 45, 22.5, 67.5
     key_ang = "RET-ANG2"
-    # Fits header keywords ====================================================
+    # Inverse gain e/ADU
+    key_gain = "GAIN"
     
     
     alpha_list, P_list, Perr_list = [], [], []
@@ -234,7 +243,6 @@ if __name__ == "__main__":
             ut = df_res.at[0, "utc"]
             alpha = utc2alpha(args.obj, ut, args.loc)
             alpha_list.append(alpha)
-
         
         # Round parameters
         # Save results
