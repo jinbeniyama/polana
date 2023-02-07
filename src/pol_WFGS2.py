@@ -43,6 +43,9 @@ if __name__ == "__main__":
         "--radius", type=float, default=40, 
         help="aperture radius in pixel (p_scale = 0.198 arcsec/s)")
     parser.add_argument(
+        "--ann", action='store_true', default=False,
+        help='Do photometry with annulus')
+    parser.add_argument(
         "--ann_gap", type=float, default=2, 
         help="gap between annulus and circle ")
     parser.add_argument(
@@ -60,9 +63,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--photmap", action='store_true',
         help='create photometry region map (a bit slow)')
-    parser.add_argument(
-        "--ann", action='store_true', default=False,
-        help='Do photometry with annulus')
     args = parser.parse_args()
     
     outdir = args.outdir
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     key_gain = "GAIN"
     
     alpha_list, P_list, Perr_list = [], [], []
+    theta_list, thetaerr_list     = [], []
     for x in args.inp:
         # Read input files
         df_in = pd.read_csv(x, sep=" ")
@@ -294,10 +295,13 @@ if __name__ == "__main__":
             df_res = df_res.reset_index()
         
             # Calculate linear polarization degree P
-            P, Perr = calc_P_4angle(df_res)
-            print(f"  polarization degree P = {P:.3f}+-{Perr:.3f}")
+            P, Perr, theta, thetaerr = polana_4angle(df_res)
+            print(f"  Polarization degree P = {P:.3f}+-{Perr:.3f}")
+            print(f"  Position              = {theta:.3f}+-{thetaerr:.3f}")
             P_list.append(P)
             Perr_list.append(Perr)
+            theta_list.append(theta)
+            thetaerr_list.append(thetaerr)
 
             if args.mp:
                 # Obtain phase angle with object name
@@ -313,12 +317,16 @@ if __name__ == "__main__":
         else:
             out = "polres_WFGS2.txt"
         out = os.path.join(outdir, out)
+        N = len(P_list)
         if args.mp:
             df_all = pd.DataFrame(dict(
-                alpha=alpha_list, P=P_list, Perr=Perr_list
+                obj=[args.obj]*N, alpha=alpha_list, P=P_list, Perr=Perr_list,
+                theta=theta_list, thetaerr=thetaerr_list,
                 ))
         else:
             df_all = pd.DataFrame(dict(
-                P=P_list, Perr=Perr_list
+                obj=[args.obj]*N, P=P_list, Perr=Perr_list, 
+                theta=theta_list, thetaerr=thetaerr_list,
             ))
+        # sort column name
         df_all.to_csv(out, sep=" ", index=False)
