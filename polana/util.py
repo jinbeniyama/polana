@@ -54,11 +54,10 @@ def utc2alpha(obj, ut, loc):
     return alpha
 
 
-def calc_P_4angle(df):
+def polana_4angle(df):
     """
-    Calculate polarization degree with data in four angles of 
-    Half .
-    (0000, 0225, 0450, 0675)
+    Calculate linear polarization degree and position angle 
+    with data in four angles of Half-wave plate (0000, 0225, 0450, 0675).
 
     Parameter
     ---------
@@ -68,9 +67,13 @@ def calc_P_4angle(df):
     Return
     ------
     P : float
-        polarization degree
+        liner polarization degree
     Perr : float
         1-sigma uncertainty of polarization degree
+    theta : float
+        position angle of polarization
+    thetaerr : float
+        1-sigma uncertainty of the position angle 
     """
     df_0000 = df[df["angle"]=="0000"].reset_index()
     df_0225 = df[df["angle"]=="0225"].reset_index()
@@ -122,7 +125,7 @@ def calc_P_4angle(df):
             )
         )
 
-    # Calculate q and u
+    # Calculate q and u, (q = Q/I and u = U/I)
     # Kawakami+2021, Geem+2022, (not consistent with Ishiguro+2017, Kuroda+2018)
     # But it is ok since we use q**2 and u**2
     q = (1-Rq)/(1+Rq)
@@ -141,7 +144,62 @@ def calc_P_4angle(df):
     Perr = np.sqrt(
         q**2*qerr**2 + u**2*uerr**2
         )/P
-    return P, Perr
+
+    # Calculate theta (osition angle relative to celestial North pole) 
+    # and thetaerr in radian
+    # arctan2(u, q) returns arctan(u/q) considering from Q1 to Q4
+    theta = 0.5*np.arctan2(u, q)
+    # TODO: Check
+    thetaerr = np.sqrt(
+        0.25/(1+(q/u)**2)**2*((uerr/q)**2 + (u*qerr/q**2)**2)    
+        )
+    return u, uerr, q, qerr, P, Perr, theta, thetaerr
+
+
+def cor_instpol_WFGS2(df):
+    """
+    Correct instrument polarization.
+
+    Parameter
+    ---------
+    df : pandas.DataFrame
+        input dataframe with u, q
+    
+    Return
+    ------
+    df : pandas.DataFrame
+        output dataframe with u_cor, q_cor
+    """
+    # See Kawakami+2021
+    df["q_cor0"] = 0.982*df["q"]
+    df["u_cor0"] = 0.982*df["u"]
+    df["qerr_cor0"] = 0.982*df["qerr"]
+    df["uerr_cor0"] = 0.982*df["uerr"]
+
+    df["q_cor"] =  0.980*df["q_cor0"] + 0.197*df["u_cor0"]
+    df["u_cor"] = -0.198*df["q_cor0"] + 0.980*df["u_cor0"]
+    df["qerr_cor"] = np.sqrt(0.980*df["qerr_cor0"]**2 + 0.197*df["uerr_cor0"]**2)
+    df["uerr_cor"] = np.sqrt(0.198*df["qerr_cor0"]**2 + 0.980*df["uerr_cor0"]**2)
+
+    # Calculate P_cor and theta_cor
+    df["P_cor"] = np.sqrt(
+        df["q_cor"]**2 + df["u_cor"]**2
+        )
+    df["Perr_cor"] = np.sqrt(
+        df["q_cor"]**2*df["qerr_cor"]**2 + df["u_cor"]**2*df["uerr_cor"]**2
+        )/df["P_cor"]
+
+    df["theta_cor"] = 0.5*np.arctan2(df["u_cor"], df["q_cor"])
+    df["thetaerr_cor"] = np.sqrt(
+        0.25/(1+(df["q_cor"]/df["u_cor"])**2)**2*((df["uerr_cor"]/df["q_cor"])**2 
+        + (df["u_cor"]*df["qerr_cor"]/df["q_cor"]**2)**2)    
+        )
+
+    return df
+
+
+def cor_instpol_MSI(df):
+    return df
 
 
 def diverr(val1, err1, val2, err2):
@@ -281,7 +339,7 @@ def round_error(value, err):
     return value_round, err_round
 
 
-def remove_background2d_Dipol2(image, mask=None):
+def remove_background2d_pol(image, mask=None):
     """ Remove background from 2D FITS
     """
     bg_engine = sep.Background(image, mask=mask)

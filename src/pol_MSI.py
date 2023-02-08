@@ -89,8 +89,9 @@ if __name__ == "__main__":
     # Inverse gain e/ADU
     key_gain = "GAIN"
     
-    
+    u_list, uerr_list, q_list, qerr_list = [], [], [], []
     alpha_list, P_list, Perr_list = [], [], []
+    theta_list, thetaerr_list     = [], []
     for x in args.inp:
         # Read input files
         df_in = pd.read_csv(x, sep=" ")
@@ -333,11 +334,18 @@ if __name__ == "__main__":
             df_res = pd.concat(df_res_list, axis=0)
             df_res = df_res.reset_index()
         
-            # Calculate linera polarization degree P
-            P, Perr = calc_P_4angle(df_res)
-            print(f"  polarization degree P = {P:.4f}+-{Perr:.4f}")
+            # Calculate linear polarization degree P
+            u, uerr, q, qerr, P, Perr, theta, thetaerr = polana_4angle(df_res)
+            print(f"  Polarization degree P = {P:.3f}+-{Perr:.3f}")
+            print(f"  Position              = {theta:.3f}+-{thetaerr:.3f}")
+            u_list.append(u)
+            uerr_list.append(uerr)
+            q_list.append(q)
+            qerr_list.append(qerr)
             P_list.append(P)
             Perr_list.append(Perr)
+            theta_list.append(theta)
+            thetaerr_list.append(thetaerr)
 
             if args.mp:
                 # Obtain phase angle with object name
@@ -354,12 +362,22 @@ if __name__ == "__main__":
         else:
             out = "polres_MSI.txt"
         out = os.path.join(outdir, out)
+
+        N = len(P_list)
         if args.mp:
             df_all = pd.DataFrame(dict(
-                alpha=alpha_list, P=P_list, Perr=Perr_list
+                obj=[args.obj]*N, alpha=alpha_list, 
+                u=u_list, uerr=uerr_list,
+                q=q_list, qerr=qerr_list,
+                P=P_list, Perr=Perr_list,
+                theta=theta_list, thetaerr=thetaerr_list,
                 ))
         else:
             df_all = pd.DataFrame(dict(
-                P=P_list, Perr=Perr_list
+                obj=[args.obj]*N, 
+                u=u_list, uerr=uerr_list,
+                q=q_list, qerr=qerr_list,
+                P=P_list, Perr=Perr_list, 
+                theta=theta_list, thetaerr=thetaerr_list,
             ))
         df_all.to_csv(out, sep=" ", index=False)

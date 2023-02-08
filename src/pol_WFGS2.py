@@ -8,6 +8,9 @@ x y fits
 .
 
 Ordainary and Extra-ordinary can be distinguished with fits file.
+
+Note: 
+    theta and theta error are in radians.
 """
 import os
 import numpy as np
@@ -92,6 +95,7 @@ if __name__ == "__main__":
     # Inverse gain e/ADU
     key_gain = "GAIN"
     
+    u_list, uerr_list, q_list, qerr_list = [], [], [], []
     alpha_list, P_list, Perr_list = [], [], []
     theta_list, thetaerr_list     = [], []
     for x in args.inp:
@@ -295,9 +299,13 @@ if __name__ == "__main__":
             df_res = df_res.reset_index()
         
             # Calculate linear polarization degree P
-            P, Perr, theta, thetaerr = polana_4angle(df_res)
+            u, uerr, q, qerr, P, Perr, theta, thetaerr = polana_4angle(df_res)
             print(f"  Polarization degree P = {P:.3f}+-{Perr:.3f}")
             print(f"  Position              = {theta:.3f}+-{thetaerr:.3f}")
+            u_list.append(u)
+            uerr_list.append(uerr)
+            q_list.append(q)
+            qerr_list.append(qerr)
             P_list.append(P)
             Perr_list.append(Perr)
             theta_list.append(theta)
@@ -317,16 +325,22 @@ if __name__ == "__main__":
         else:
             out = "polres_WFGS2.txt"
         out = os.path.join(outdir, out)
+
         N = len(P_list)
         if args.mp:
             df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, alpha=alpha_list, P=P_list, Perr=Perr_list,
+                obj=[args.obj]*N, alpha=alpha_list, 
+                u=u_list, uerr=uerr_list,
+                q=q_list, qerr=qerr_list,
+                P=P_list, Perr=Perr_list,
                 theta=theta_list, thetaerr=thetaerr_list,
                 ))
         else:
             df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, P=P_list, Perr=Perr_list, 
+                obj=[args.obj]*N, 
+                u=u_list, uerr=uerr_list,
+                q=q_list, qerr=qerr_list,
+                P=P_list, Perr=Perr_list, 
                 theta=theta_list, thetaerr=thetaerr_list,
             ))
-        # sort column name
         df_all.to_csv(out, sep=" ", index=False)
