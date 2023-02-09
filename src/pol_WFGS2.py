@@ -11,6 +11,13 @@ Ordainary and Extra-ordinary can be distinguished with fits file.
 
 Note: 
     theta and theta error are in radians.
+
+The position angle of HWP is saved as HWP-AGL.
+HWP-AGL =                 22.5 / Half-wave plate rotation angle (deg)
+The position angle of instument due to rotator is saved as INSROT.
+INSROT  =              135.583 / Typical inst rot. Angle ar exp.(degree)
+Typical postion angle of instrument is saved as INST-PA (fixed value).
+INST-PA =                  0.0 / Approx PA of instrument (deg)
 """
 import os
 import numpy as np
@@ -94,10 +101,15 @@ if __name__ == "__main__":
     key_ang = "HWP-AGL"
     # Inverse gain e/ADU
     key_gain = "GAIN"
+    # The position angle of instument due to rotator is saved as INSROT.
+    key_insrot = "INSROT"
+    # Typical postion angle of instrument is saved as INST-PA (fixed value).
+    key_instpa = "INST-PA"
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
     alpha_list, P_list, Perr_list = [], [], []
     theta_list, thetaerr_list     = [], []
+    insrot_list, instpa_list      = [], []
     for x in args.inp:
         # Read input files
         df_in = pd.read_csv(x, sep=" ")
@@ -130,6 +142,11 @@ if __name__ == "__main__":
                 # Read GAIN in fits header
                 # ex) GAIN    =                 2.28 / CCD gain in e/ADU, ref: MINT wiki
                 gain = hdr[key_gain]
+
+                # Obtain rotator angle (INSROT) 
+                # and position angle of the instrument (INSTPA)
+                insrot = hdr[key_insrot]
+                instpa = hdr[key_instpa]
                 
                 # Read 2-d image
                 img = src.data
@@ -310,6 +327,8 @@ if __name__ == "__main__":
             Perr_list.append(Perr)
             theta_list.append(theta)
             thetaerr_list.append(thetaerr)
+            insrot_list.append(insrot)
+            instpa_list.append(instpa)
 
             if args.mp:
                 # Obtain phase angle with object name
@@ -329,18 +348,20 @@ if __name__ == "__main__":
         N = len(P_list)
         if args.mp:
             df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, alpha=alpha_list, 
+                obj=[args.obj]*N, inst=["WFGS2"]*N, alpha=alpha_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
                 theta=theta_list, thetaerr=thetaerr_list,
+                insrot=insrot_list, instpa=instpa_list,
                 ))
         else:
             df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, 
+                obj=[args.obj]*N, inst=["WFGS2"]*N,
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
                 theta=theta_list, thetaerr=thetaerr_list,
+                insrot=insrot_list, instpa=instpa_list,
             ))
         df_all.to_csv(out, sep=" ", index=False)
