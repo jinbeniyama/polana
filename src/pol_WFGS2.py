@@ -348,7 +348,8 @@ if __name__ == "__main__":
         N = len(P_list)
         if args.mp:
             df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, inst=["WFGS2"]*N, alpha=alpha_list, 
+                obj=[args.obj]*N, inst=["WFGS2"]*N, band=[band]*N,
+                alpha=alpha_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
@@ -357,7 +358,7 @@ if __name__ == "__main__":
                 ))
         else:
             df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, inst=["WFGS2"]*N,
+                obj=[args.obj]*N, inst=["WFGS2"]*N, band=[band]*N,
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
