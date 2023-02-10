@@ -61,8 +61,9 @@ def plot_obspolres(
 
 
     # in degree TODO:check
-    wmean_theta, wstd_theta = np.rad2deg(wmean_theta), 180./np.pi*wstd_theta
+    wmean_theta, wstd_theta = np.rad2deg(wmean_theta), np.rad2deg(wstd_theta)
     theta, thetaerr = round_error(wmean_theta, wstd_theta)
+
 
     label = (
         f"{obj} {key}\n" + r"(P, $\theta$) = " 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
 
 
     fig = plt.figure(figsize=(8, 8)) 
-    ax = fig.add_axes([0.15, 0.15, 0.8, 0.80])
+    ax = fig.add_axes([0.20, 0.20, 0.78, 0.78])
     ax.set_xlabel(f"q = Q/I")
     ax.set_ylabel(f"u = U/I")
 
@@ -189,29 +190,36 @@ if __name__ == "__main__":
     # Plot linear polarization degree after correction
     if args.cor:
         inst = df.inst[0]
+        band = df.band[0]
 
         # 1. Correction of polarization efficiency with 'p_eff'.
         df = cor_poleff(
-            df, inst, "q", "u", "qerr", "uerr", "q_cor0", "u_cor0", 
+            df, inst, band, "q", "u", "qerr", "uerr", "q_cor0", "u_cor0", 
             "qerr_cor0", "uerr_cor0")
 
         # 2. Correction of instrumental polarization with 'q_inst' and 'u_inst'.
         df = cor_instpol(
-            df, inst, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
+            df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
             "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot")
 
         # 3. Correction of position angle offset with 'pa_offset'.
         df = cor_paoffset(
-            df, inst, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
+            df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
             "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+        
+        # For test ============================================================
+        #df = cor_paoffset2(
+        #    df, inst, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
+        #    "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+        # For test ============================================================
 
         # Finally calculate P_cor and theta_cor
         key_P, key_Perr = "P_cor", "Perr_cor"
         key_theta, key_thetaerr = "theta_cor", "thetaerr_cor"
+
         df = calc_Ptheta(
-            df, "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", key_P, key_theta,
-            key_Perr, key_thetaerr)
-        # TODO:update functions (polana_4angle)
+            df, key_P, key_theta, key_Perr, key_thetaerr,
+            "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
 
         # P_cor, theta_cor, q_cor, u_cor are final values
         plot_obspolres(
