@@ -479,10 +479,17 @@ def calc_Ptheta(
         )/df[key_P]
 
     df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
+
+    # 1. standard calculation
     df[key_thetaerr] = np.sqrt(
-        0.25/(1+(df[key_q]/df[key_u])**2)**2*((df[key_uerr]/df[key_q])**2 
+        0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
         + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
         )
+    # 2. useful result
+    df[key_thetaerr] = 0.5*df[key_Perr]/df[key_P]
+
+    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
+
     return df
 
 
