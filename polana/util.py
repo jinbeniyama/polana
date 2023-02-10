@@ -156,50 +156,325 @@ def polana_4angle(df):
     return u, uerr, q, qerr, P, Perr, theta, thetaerr
 
 
-def cor_instpol_WFGS2(df):
+
+def cor_poleff(
+    df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
+    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
+    key_uerr_cor="u_corerr"):
     """
-    Correct instrument polarization.
+    Do correction about polarization efficiency.
 
     Parameter
     ---------
     df : pandas.DataFrame
-        input dataframe with u, q
-    
+        input dataframe with u, q, etc.
+    inst : str
+        instrument
+    band : str
+         filter
+    key_q, key_u, key_qerr, key_uerr : str
+        keywords for original q, u, and their errors
+    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
+        keywords for corrected q, u, and their errors
+
     Return
     ------
     df : pandas.DataFrame
-        output dataframe with u_cor, q_cor
+        output dataframe with u, q, etc.
     """
-    # See Kawakami+2021
-    df["q_cor0"] = 0.982*df["q"]
-    df["u_cor0"] = 0.982*df["u"]
-    df["qerr_cor0"] = 0.982*df["qerr"]
-    df["uerr_cor0"] = 0.982*df["uerr"]
+    if inst == "MSI":
+        # TODO:check
+        # From Ishiguro+2017 (, Geem+2022a) 
+        if band == "Rc" or "R":
+            peff    = 0.9971
+            pefferr = 0.0001
+        if band == "V":
+            peff    = 0.9967
+            pefferr = 0.0003
 
-    df["q_cor"] =  0.980*df["q_cor0"] + 0.197*df["u_cor0"]
-    df["u_cor"] = -0.198*df["q_cor0"] + 0.980*df["u_cor0"]
-    df["qerr_cor"] = np.sqrt(0.980*df["qerr_cor0"]**2 + 0.197*df["uerr_cor0"]**2)
-    df["uerr_cor"] = np.sqrt(0.198*df["qerr_cor0"]**2 + 0.980*df["uerr_cor0"]**2)
+    if inst == "WFGS2":
+        # TODO:check
+        # From Kawakami+2021
+        # In Geem+2022b peff=1 (assumption)
+        peff    = 0.982
+        pefferr = 0.0
+
+    if inst == "HONIR":
+        # TODO:check
+        # From Geem+2022b
+        peff    = 0.9858
+        pefferr = 0.0008
+
+    df[key_q_cor] = df[key_q]/peff
+    df[key_u_cor] = df[key_u]/peff 
+    df[key_qerr_cor] = df[key_qerr]/peff 
+    df[key_uerr_cor] = df[key_uerr]/peff 
+
+    return df
+
+
+def cor_instpol(
+    df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
+    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
+    key_uerr_cor="uerr_cor", key_insrot="insrot"):
+    """
+    Do correction about instrument polarization.
+
+    Parameter
+    ---------
+    df : pandas.DataFrame
+        input dataframe with u, q, etc.
+    inst : str
+        instrument
+    band : str
+         filter
+    key_q, key_u, key_qerr, key_uerr : str
+        keywords for original q, u, and their errors
+    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
+        keywords for corrected q, u, and their errors
+    key_insrot : str
+        keyword for angle of instrument rotator
+
+    Return
+    ------
+    df : pandas.DataFrame
+        output dataframe with u, q, etc.
+    """
+
+
+    if inst == "MSI":
+        # From Ishiguro+2017 (, Geem+2022a)
+        if band == "Rc" or "R":
+            qinst    = 0.00703
+            qinsterr = 0.00033
+            uinst    = 0.00337
+            uinsterr = 0.00020
+        elif band == "V":
+            qinst    = 0.00963
+            qinsterr = 0.00029
+            uinst    = 0.00453
+            uinsterr = 0.00043
+
+    if inst == "WFGS2":
+        # From code in Geem+2022b
+        if band == "Rc" or "R":
+            qinst    = -0.00043
+            qinsterr =  0.00012
+            uinst    = -0.00178
+            uinsterr =  0.00011
+        if band == "V":
+            assert False, "No data."
+
+    if inst == "HONIR":
+        # From Geem+2022b
+        if band == "Rc" or "R":
+            qinst    = -0.000097
+            qinsterr =  0.000498
+            uinst    = -0.000077
+            uinsterr =  0.000371
+        if band == "V":
+            assert False, "No data."
+ 
+    # In radian
+    insrot    = np.deg2rad(df[key_insrot])
+    insroterr = 0
+    
+    df[key_q_cor] =  (
+        df[key_q] 
+        - np.cos(2*insrot)*qinst + np.sin(2*insrot)*uinst
+        )
+    df[key_u_cor] =  (
+        df[key_u] 
+        - np.sin(2*insrot)*qinst - np.cos(2*insrot)*uinst
+        )
+    df[key_qerr_cor] = np.sqrt(
+        df[key_qerr]**2 
+        + (np.cos(2*insrot)*qinsterr)**2 + (np.sin(2*insrot)*uinsterr)**2 
+        )
+    df[key_uerr_cor] = np.sqrt(
+        df[key_uerr]**2 
+        + (np.sin(2*insrot)*qinsterr)**2 + (np.cos(2*insrot)*uinsterr)**2 
+        )
+
+    return df
+
+
+def cor_paoffset(
+    df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
+    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
+    key_uerr_cor="uerr_cor", key_instpa="instpa"):
+    """
+    Do correction about position angle offset.
+
+    Parameter
+    ---------
+    df : pandas.DataFrame
+        input dataframe with u, q, etc.
+    inst : str
+        instrument
+    band : str
+         filter
+    key_q, key_u, key_qerr, key_uerr : str
+        keywords for original q, u, and their errors
+    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
+        keywords for corrected q, u, and their errors
+    key_instpa : str
+        keyword for position angle of instrument
+
+    Return
+    ------
+    df : pandas.DataFrame
+        output dataframe with u, q, etc.
+    """
+
+    # In degree
+    
+    # Check the sign carefully !!!
+    if inst == "MSI":
+        # From Ishiguro+2017 (, Geem+2022a) 3.38
+        # But definition of theta_off is different!
+        # Here we use theta_off = theta_lt - theta_obs.
+        # Thus, -3.38
+        if band == "Rc" or "R":
+            # ??? 
+            paoffset    = -3.38
+            paoffseterr = 0.37
+        if band == "V":
+            # ??? 
+            # ??? 
+            paoffset    = -3.82
+            paoffseterr = 0.38
+
+    if inst == "WFGS2":
+        # From Geem+2022b
+        paoffset    = -5.19
+        # This is ok. Result is similar to that derived using coefficients in
+        # Kawakami+2021. (beta = -5.68 deg in Rc)
+        #paoffset    = -5.68
+        paoffseterr =  0.00
+
+    if inst == "HONIR":
+        # From Geem+2022b
+        # -36.8 ??? 
+        paoffset    = 36.8
+        paoffseterr = 0.13
+    
+    # In degree
+    theta    = paoffset - df[key_instpa]
+    thetaerr = np.sqrt(
+        paoffseterr**2 + 0.0
+        )
+
+    # In radian
+    theta    = np.deg2rad(theta)
+    thetaerr = np.deg2rad(thetaerr)
+    
+    df[key_q_cor] =  (
+        np.cos(2*theta)*df[key_q] - np.sin(2*theta)*df[key_u]
+        )
+    df[key_u_cor] =  (
+        np.sin(2*theta)*df[key_q] + np.cos(2*theta)*df[key_u]
+        )
+
+    df[key_qerr_cor] = np.sqrt(
+        (-2*np.sin(2*theta)*df[key_q] + 2*np.cos(2*theta)*df[key_u])**2*thetaerr**2
+        + (np.cos(2*theta)*df[key_qerr])**2 + (np.sin(2*theta)*df[key_uerr])**2 
+        )
+    df[key_uerr_cor] = np.sqrt(
+        (-2*np.cos(2*theta)*df[key_q] - 2*np.sin(2*theta)*df[key_u])**2*thetaerr**2
+        + (-np.sin(2*theta)*df[key_qerr])**2 + (np.cos(2*theta)*df[key_uerr])**2 
+        )
+    return df
+
+
+def cor_paoffset2(
+    df, inst, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
+    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
+    key_uerr_cor="uerr_cor", key_instpa="instpa"):
+    """
+    Do correction about position angle offset.
+
+    Parameter
+    ---------
+    df : pandas.DataFrame
+        input dataframe with u, q, etc.
+    inst : str
+        instrument
+    key_q, key_u, key_qerr, key_uerr : str
+        keywords for original q, u, and their errors
+    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
+        keywords for corrected q, u, and their errors
+    key_instpa : str
+        keyword for position angle of instrument
+
+    Return
+    ------
+    df : pandas.DataFrame
+        output dataframe with u, q, etc.
+    """
+
+    if inst == "MSI":
+        # From Ishiguro+2017 (, Geem+2022a) 3.38
+        # But definition of theta_off is different!
+        # Here we use theta_off = theta_lt - theta_obs.
+        # Thus, -3.38
+        paoffset    = -3.38
+        paoffseterr = 0.37
+    if inst == "WFGS2":
+        # From Geem+2022b
+        # in degree
+        paoffset    = -5.19
+        paoffseterr =  0.15
+
+        # See Kawakami+2021, sag
+        df[key_q_cor] =  0.980*df[key_q] + 0.197*df[key_u]
+        df[key_u_cor] = -0.198*df[key_q] + 0.980*df[key_u]
+        df[key_qerr_cor] = np.sqrt(0.980*df[key_qerr]**2 + 0.197*df[key_uerr]**2)
+        df[key_uerr_cor] = np.sqrt(0.198*df[key_qerr]**2 + 0.980*df[key_uerr]**2)
+
+    if inst == "HONIR":
+        # From Geem+2022b
+        paoffset    = 36.8
+        paoffseterr = 0.13
+    
+    return df
+
+
+def calc_Ptheta(
+    df, 
+    key_P="P", key_theta="theta", key_Perr="Perr", key_thetaerr="thetaerr",
+    key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr"):
 
     # Calculate P_cor and theta_cor
-    df["P_cor"] = np.sqrt(
-        df["q_cor"]**2 + df["u_cor"]**2
+    df[key_P] = np.sqrt(
+        df[key_q]**2 + df[key_u]**2
         )
-    df["Perr_cor"] = np.sqrt(
-        df["q_cor"]**2*df["qerr_cor"]**2 + df["u_cor"]**2*df["uerr_cor"]**2
-        )/df["P_cor"]
+    df[key_Perr] = np.sqrt(
+        df[key_q]**2*df[key_qerr]**2 + df[key_u]**2*df[key_uerr]**2
+        )/df[key_P]
 
-    df["theta_cor"] = 0.5*np.arctan2(df["u_cor"], df["q_cor"])
-    df["thetaerr_cor"] = np.sqrt(
-        0.25/(1+(df["q_cor"]/df["u_cor"])**2)**2*((df["uerr_cor"]/df["q_cor"])**2 
-        + (df["u_cor"]*df["qerr_cor"]/df["q_cor"]**2)**2)    
+    df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
+    df[key_thetaerr] = np.sqrt(
+        0.25/(1+(df[key_q]/df[key_u])**2)**2*((df[key_uerr]/df[key_q])**2 
+        + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
         )
-
     return df
 
 
-def cor_instpol_MSI(df):
-    return df
+def _fit(alpha, H, G):
+    """
+    Phase curve fitting as
+        f(a) = H -2.5lon10((1-G)Phi1 + GPhi2),
+    where
+        Phi1 = w*(1-C1*sin(a)/(0.119+1.341sin(a) + sin^2(a))) + (1-w)*(-A1tan^B1(a/2)),
+        term2 = w*(1-C2*sin(a)/(0.119+1.341sin(a) + sin^2(a))) + (1-w)*(-A2tan^B2(a/2)),
+        w = exp(-90.56tan^2(a/2))
+    """
+    Phi1 = calc_Phi(1, alpha)
+    Phi2 = calc_Phi(2, alpha)
+    falpha = H -2.5*np.log10((1-G)*Phi1 + G*Phi2)
+    return falpha
+
 
 
 def diverr(val1, err1, val2, err2):
@@ -471,25 +746,25 @@ def calc_QU(df):
     return Q, Qerr, U, Uerr
 
 
-def calc_P(Q, Qerr, U, Uerr):
-    """
-    Calculate linear polarization degree P from stokes Q and U for T60/Dipol-2.
-
-    Parameters
-    ----------
-    Q, Qerr : float
-        Stokes Q normalized by I and its uncertainty
-    U, Uerr : float
-        Stokes U normalized by I and its uncertainty
-
-    Returns
-    -------
-    P, Perr : float
-        linear polarization degree and its uncertainty
-    """
-    P = np.sqrt(Q**2 + U**2)
-    Perr = Uerr
-    return P, Perr
+# def calc_P(Q, Qerr, U, Uerr):
+#     """
+#     Calculate linear polarization degree P from stokes Q and U for T60/Dipol-2.
+# 
+#     Parameters
+#     ----------
+#     Q, Qerr : float
+#         Stokes Q normalized by I and its uncertainty
+#     U, Uerr : float
+#         Stokes U normalized by I and its uncertainty
+# 
+#     Returns
+#     -------
+#     P, Perr : float
+#         linear polarization degree and its uncertainty
+#     """
+#     P = np.sqrt(Q**2 + U**2)
+#     Perr = Uerr
+#     return P, Perr
 
 
 def adderr(*args):
