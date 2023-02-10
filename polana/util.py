@@ -149,10 +149,11 @@ def polana_4angle(df):
     # and thetaerr in radian
     # arctan2(u, q) returns arctan(u/q) considering from Q1 to Q4
     theta = 0.5*np.arctan2(u, q)
-    # TODO: Check
-    thetaerr = np.sqrt(
-        0.25/(1+(q/u)**2)**2*((uerr/q)**2 + (u*qerr/q**2)**2)    
-        )
+    thetaerr = 0.5*Perr/P
+    # Why slightly different
+    # thetaerr = np.sqrt(
+    #    0.25/(1+(u/q)**2)**2*((uerr/q)**2 + (u*qerr/q**2)**2)    
+    #    )
     return u, uerr, q, qerr, P, Perr, theta, thetaerr
 
 
@@ -300,12 +301,10 @@ def cor_instpol(
     insroterr = 0
     
     df[key_q_cor] =  (
-        df[key_q] 
-        - np.cos(2*insrot)*qinst + np.sin(2*insrot)*uinst
+        df[key_q] - np.cos(2*insrot)*qinst + np.sin(2*insrot)*uinst
         )
     df[key_u_cor] =  (
-        df[key_u] 
-        - np.sin(2*insrot)*qinst - np.cos(2*insrot)*uinst
+        df[key_u] - np.sin(2*insrot)*qinst - np.cos(2*insrot)*uinst
         )
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
@@ -371,8 +370,10 @@ def cor_paoffset(
             paoffseterr = 0.14
 
     if inst == "WFGS2":
-        # From Geem+2022b
+        # From Geem+2022b. The value and calculation is ok for this script.
+        # But in Geem+2022b, the calculation is inconsistent with offset...?
         paoffset    = -5.19
+
         # This is ok. Result is similar to that derived using coefficients in
         # Kawakami+2021. (beta = -5.68 deg in Rc)
         #paoffset    = -5.68
@@ -385,84 +386,87 @@ def cor_paoffset(
         paoffseterr = 0.13
     
     # In degree
-    theta    = paoffset - df[key_instpa]
-    thetaerr = np.sqrt(
-        paoffseterr**2 + 0.0
+    # Here, paoffset = theta_lt - theta_obs,
+    # which is different from those defined in Ishigur+2017, Okazaki+2021.
+    thetarot    = paoffset - df[key_instpa]
+    instpaerr = 0
+    thetaroterr = np.sqrt(
+        paoffseterr**2 + instpaerr**2
         )
 
     # In radian
-    theta    = np.deg2rad(theta)
-    thetaerr = np.deg2rad(thetaerr)
+    thetarot    = np.deg2rad(thetarot)
+    thetaroterr = np.deg2rad(thetaroterr)
     
     df[key_q_cor] =  (
-        np.cos(2*theta)*df[key_q] - np.sin(2*theta)*df[key_u]
+        np.cos(2*thetarot)*df[key_q] - np.sin(2*thetarot)*df[key_u]
         )
     df[key_u_cor] =  (
-        np.sin(2*theta)*df[key_q] + np.cos(2*theta)*df[key_u]
+        np.sin(2*thetarot)*df[key_q] + np.cos(2*thetarot)*df[key_u]
         )
 
     df[key_qerr_cor] = np.sqrt(
-        (-2*np.sin(2*theta)*df[key_q] + 2*np.cos(2*theta)*df[key_u])**2*thetaerr**2
-        + (np.cos(2*theta)*df[key_qerr])**2 + (np.sin(2*theta)*df[key_uerr])**2 
+        (-2*np.sin(2*thetarot)*df[key_q] + 2*np.cos(2*thetarot)*df[key_u])**2*thetaroterr**2
+        + (np.cos(2*thetarot)*df[key_qerr])**2 + (np.sin(2*thetarot)*df[key_uerr])**2 
         )
     df[key_uerr_cor] = np.sqrt(
-        (-2*np.cos(2*theta)*df[key_q] - 2*np.sin(2*theta)*df[key_u])**2*thetaerr**2
-        + (-np.sin(2*theta)*df[key_qerr])**2 + (np.cos(2*theta)*df[key_uerr])**2 
+        (-2*np.cos(2*thetarot)*df[key_q] - 2*np.sin(2*thetarot)*df[key_u])**2*thetaroterr**2
+        + (-np.sin(2*thetarot)*df[key_qerr])**2 + (np.cos(2*thetarot)*df[key_uerr])**2 
         )
     return df
 
 
-def cor_paoffset2(
-    df, inst, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
-    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="uerr_cor", key_instpa="instpa"):
-    """
-    Do correction about position angle offset.
-
-    Parameter
-    ---------
-    df : pandas.DataFrame
-        input dataframe with u, q, etc.
-    inst : str
-        instrument
-    key_q, key_u, key_qerr, key_uerr : str
-        keywords for original q, u, and their errors
-    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
-        keywords for corrected q, u, and their errors
-    key_instpa : str
-        keyword for position angle of instrument
-
-    Return
-    ------
-    df : pandas.DataFrame
-        output dataframe with u, q, etc.
-    """
-
-    if inst == "MSI":
-        # From Ishiguro+2017 (, Geem+2022a) 3.38
-        # But definition of theta_off is different!
-        # Here we use theta_off = theta_lt - theta_obs.
-        # Thus, -3.38
-        paoffset    = -3.38
-        paoffseterr = 0.37
-    if inst == "WFGS2":
-        # From Geem+2022b
-        # in degree
-        paoffset    = -5.19
-        paoffseterr =  0.15
-
-        # See Kawakami+2021, sag
-        df[key_q_cor] =  0.980*df[key_q] + 0.197*df[key_u]
-        df[key_u_cor] = -0.198*df[key_q] + 0.980*df[key_u]
-        df[key_qerr_cor] = np.sqrt(0.980*df[key_qerr]**2 + 0.197*df[key_uerr]**2)
-        df[key_uerr_cor] = np.sqrt(0.198*df[key_qerr]**2 + 0.980*df[key_uerr]**2)
-
-    if inst == "HONIR":
-        # From Geem+2022b
-        paoffset    = 36.8
-        paoffseterr = 0.13
-    
-    return df
+# def cor_paoffset2(
+#     df, inst, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
+#     key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
+#     key_uerr_cor="uerr_cor", key_instpa="instpa"):
+#     """
+#     Do correction about position angle offset.
+# 
+#     Parameter
+#     ---------
+#     df : pandas.DataFrame
+#         input dataframe with u, q, etc.
+#     inst : str
+#         instrument
+#     key_q, key_u, key_qerr, key_uerr : str
+#         keywords for original q, u, and their errors
+#     key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
+#         keywords for corrected q, u, and their errors
+#     key_instpa : str
+#         keyword for position angle of instrument
+# 
+#     Return
+#     ------
+#     df : pandas.DataFrame
+#         output dataframe with u, q, etc.
+#     """
+# 
+#     if inst == "MSI":
+#         # From Ishiguro+2017 (, Geem+2022a) 3.38
+#         # But definition of theta_off is different!
+#         # Here we use theta_off = theta_lt - theta_obs.
+#         # Thus, -3.38
+#         paoffset    = -3.38
+#         paoffseterr = 0.37
+#     if inst == "WFGS2":
+#         # From Geem+2022b
+#         # in degree
+#         paoffset    = -5.19
+#         paoffseterr =  0.15
+# 
+#         # See Kawakami+2021, sag
+#         df[key_q_cor] =  0.980*df[key_q] + 0.197*df[key_u]
+#         df[key_u_cor] = -0.198*df[key_q] + 0.980*df[key_u]
+#         df[key_qerr_cor] = np.sqrt(0.980*df[key_qerr]**2 + 0.197*df[key_uerr]**2)
+#         df[key_uerr_cor] = np.sqrt(0.198*df[key_qerr]**2 + 0.980*df[key_uerr]**2)
+# 
+#     if inst == "HONIR":
+#         # From Geem+2022b
+#         paoffset    = 36.8
+#         paoffseterr = 0.13
+#     
+#     return df
 
 
 def calc_Ptheta(
@@ -487,7 +491,6 @@ def calc_Ptheta(
         )
     # 2. useful result
     df[key_thetaerr] = 0.5*df[key_Perr]/df[key_P]
-
     # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
 
     return df
