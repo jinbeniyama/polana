@@ -70,9 +70,10 @@ def projectP2scaplane(
     return df
 
 
-def utc2alpha(obj, ut, loc):
+def utc2alphaphi(obj, ut, loc):
     """
-    Return phase angle with JPL/Horizons.
+    Return phase angle and position angle of scattering plane 
+    with JPL/Horizons.
 
     Parameters
     ----------
@@ -91,8 +92,9 @@ def utc2alpha(obj, ut, loc):
         epochs={'start':t0, 'stop':t1, 'step':"1m"})
     eph = jpl.ephemerides()
     alpha  = eph[0]["alpha"]
+    phi    = eph[0]["PsANG"]
 
-    return alpha
+    return alpha, phi
 
 
 def polana_4angle(df):
