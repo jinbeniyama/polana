@@ -92,7 +92,7 @@ def utc2alphaphi(obj, ut, loc):
         epochs={'start':t0, 'stop':t1, 'step':"1m"})
     eph = jpl.ephemerides()
     alpha  = eph[0]["alpha"]
-    phi    = eph[0]["PsANG"]
+    phi    = eph[0]["sunTargetPA"]
 
     return alpha, phi
 
