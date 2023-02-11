@@ -381,5 +381,8 @@ if __name__ == "__main__":
             df = cor_paoffset(
                 df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+            df = calc_Ptheta(
+                df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
+                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
 
         df.to_csv(out, sep=" ", index=False)
