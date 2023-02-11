@@ -44,6 +44,9 @@ if __name__ == "__main__":
         "--mp", action='store_true',
         help='Save phase angle in the output for minor planet')
     parser.add_argument(
+        "--pp", action='store_true',
+        help='Do preprocess')
+    parser.add_argument(
         "--fitsdir", type=str, default=".",
         help="Fits directory")
     parser.add_argument(
@@ -86,6 +89,7 @@ if __name__ == "__main__":
     fitsdir = args.fitsdir
     radius = args.radius
     band = args.band
+    inst = "MSI"
     print(f"  Aperture radius {radius} pix")
     print(f"  filter {band}-band")
 
@@ -385,8 +389,8 @@ if __name__ == "__main__":
 
         N = len(P_list)
         if args.mp:
-            df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, inst=["MSI"]*N, band=[band]*N,
+            df = pd.DataFrame(dict(
+                obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
                 alpha=alpha_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
@@ -395,12 +399,25 @@ if __name__ == "__main__":
                 insrot=insrot_list, instpa=instpa_list,
                 ))
         else:
-            df_all = pd.DataFrame(dict(
-                obj=[args.obj]*N, inst=["MSI"]*N, band=[band]*N,
+            df = pd.DataFrame(dict(
+                obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
                 theta=theta_list, thetaerr=thetaerr_list,
                 insrot=insrot_list, instpa=instpa_list,
             ))
-        df_all.to_csv(out, sep=" ", index=False)
+
+        if args.pp:
+            # Post processes
+            df = cor_poleff(
+                df, inst, band, "q", "u", "qerr", "uerr", "q_cor0", "u_cor0", 
+                "qerr_cor0", "uerr_cor0")
+            df = cor_instpol(
+                df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
+                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot")
+            df = cor_paoffset(
+                df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
+                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+
+        df.to_csv(out, sep=" ", index=False)
