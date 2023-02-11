@@ -106,7 +106,7 @@ if __name__ == "__main__":
     key_instpa = "INST-PA"
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
-    alpha_list, P_list, Perr_list = [], [], []
+    alpha_list, phi_list, P_list, Perr_list = [], [], [], []
     theta_list, thetaerr_list     = [], []
     insrot_list, instpa_list      = [], []
     for x in args.inp:
@@ -375,8 +375,9 @@ if __name__ == "__main__":
                 # Obtain phase angle with object name
                 # Use the first time
                 ut = df_res.at[0, "utc"]
-                alpha = utc2alpha(args.obj, ut, args.loc)
+                alpha, phi = utc2alphaphi(args.obj, ut, args.loc)
                 alpha_list.append(alpha)
+                phi_list.append(phi)
 
         
         # Round parameters
@@ -391,7 +392,7 @@ if __name__ == "__main__":
         if args.mp:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
-                alpha=alpha_list, 
+                alpha=alpha_list, phi=phi_list,
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
