@@ -29,6 +29,47 @@ ferr_e_Dipol2 = [f"fluxerr_e_{int(x*10):04d}" for x in ang]
 col_Dipol2 = f_o_Dipol2 + ferr_o_Dipol2 + f_e_Dipol2 + ferr_e_Dipol2
 
 
+def projectP2scaplane(
+    df, key_Pr, key_Prerr, key_thetar, key_thetarerr, 
+    key_P, key_Perr, key_theta, key_thetaerr, key_phi):
+    """
+    Project the linear polarization degree to scattering plane using 
+    object-Sun vector.
+
+    Parameters
+    ----------
+    df : pandas.Dataframe
+        input dataframe
+
+    Return
+    ------
+    df : pandas.DataFrame
+        output dataframe
+    """
+    # TODO:update 
+    # Assume phi is almost the same at the night (=df)
+    # In degree
+    phi = np.mean(df[key_phi])
+    if phi + 90 < 180:
+        pi = df[key_phi] + 90
+    else:
+        pi = df[key_phi] - 90
+    # In radian
+    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    df[key_thetarerr] = df[key_thetaerr]
+
+    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+    # TODO: check
+    # Most previous studies 
+    # (De Luise+2007, Kuroda+2018, 2021, Geem+2022a, Kiselev+2022)
+    # seem to assume Prerr = Perr......?
+    df[key_Prerr] = np.sqrt(
+            (np.cos(2*df[key_thetar])*df[key_Perr])**2 
+            + (2*df[key_P]*np.sin(2*df[key_thetar]))**2
+            )
+    return df
+
+
 def utc2alpha(obj, ut, loc):
     """
     Return phase angle with JPL/Horizons.
@@ -301,18 +342,20 @@ def cor_instpol(
     insroterr = 0
     
     df[key_q_cor] =  (
-        df[key_q] - np.cos(2*insrot)*qinst + np.sin(2*insrot)*uinst
+        df[key_q] - (np.cos(2*insrot)*qinst - np.sin(2*insrot)*uinst)
         )
     df[key_u_cor] =  (
-        df[key_u] - np.sin(2*insrot)*qinst - np.cos(2*insrot)*uinst
+        df[key_u] - (np.sin(2*insrot)*qinst + np.cos(2*insrot)*uinst)
         )
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
-        + (np.cos(2*insrot)*qinsterr)**2 + (np.sin(2*insrot)*uinsterr)**2 
+        + (np.cos(2*insrot)*qinsterr)**2 
+        + (np.sin(2*insrot)*uinsterr)**2 
         )
     df[key_uerr_cor] = np.sqrt(
         df[key_uerr]**2 
-        + (np.sin(2*insrot)*qinsterr)**2 + (np.cos(2*insrot)*uinsterr)**2 
+        + (np.sin(2*insrot)*qinsterr)**2 
+        + (np.cos(2*insrot)*uinsterr)**2 
         )
 
     return df
@@ -388,6 +431,8 @@ def cor_paoffset(
     # In degree
     # Here, paoffset = theta_lt - theta_obs,
     # which is different from those defined in Ishigur+2017, Okazaki+2021.
+    # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
+    # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     thetarot    = paoffset - df[key_instpa]
     instpaerr = 0
     thetaroterr = np.sqrt(
@@ -404,15 +449,11 @@ def cor_paoffset(
     df[key_u_cor] =  (
         np.sin(2*thetarot)*df[key_q] + np.cos(2*thetarot)*df[key_u]
         )
+    # The errors are the same (only rotation)
+    # TODO: systematic error?
+    df[key_qerr_cor] = df[key_qerr]
+    df[key_uerr_cor] = df[key_uerr]
 
-    df[key_qerr_cor] = np.sqrt(
-        (-2*np.sin(2*thetarot)*df[key_q] + 2*np.cos(2*thetarot)*df[key_u])**2*thetaroterr**2
-        + (np.cos(2*thetarot)*df[key_qerr])**2 + (np.sin(2*thetarot)*df[key_uerr])**2 
-        )
-    df[key_uerr_cor] = np.sqrt(
-        (-2*np.cos(2*thetarot)*df[key_q] - 2*np.sin(2*thetarot)*df[key_u])**2*thetaroterr**2
-        + (-np.sin(2*thetarot)*df[key_qerr])**2 + (np.cos(2*thetarot)*df[key_uerr])**2 
-        )
     return df
 
 
@@ -483,12 +524,11 @@ def calc_Ptheta(
         )/df[key_P]
 
     df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
-
     # 1. standard calculation
-    df[key_thetaerr] = np.sqrt(
-        0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
-        + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
-        )
+    #df[key_thetaerr] = np.sqrt(
+    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
+    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
+    #    )
     # 2. useful result
     df[key_thetaerr] = 0.5*df[key_Perr]/df[key_P]
     # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
@@ -496,19 +536,6 @@ def calc_Ptheta(
     return df
 
 
-def _fit(alpha, H, G):
-    """
-    Phase curve fitting as
-        f(a) = H -2.5lon10((1-G)Phi1 + GPhi2),
-    where
-        Phi1 = w*(1-C1*sin(a)/(0.119+1.341sin(a) + sin^2(a))) + (1-w)*(-A1tan^B1(a/2)),
-        term2 = w*(1-C2*sin(a)/(0.119+1.341sin(a) + sin^2(a))) + (1-w)*(-A2tan^B2(a/2)),
-        w = exp(-90.56tan^2(a/2))
-    """
-    Phi1 = calc_Phi(1, alpha)
-    Phi2 = calc_Phi(2, alpha)
-    falpha = H -2.5*np.log10((1-G)*Phi1 + G*Phi2)
-    return falpha
 
 
 
