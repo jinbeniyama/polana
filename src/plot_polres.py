@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Plot derived linear polarization degree and position angle 
-on U/I-Q/I plane.
+Plot derived linear polarization degree and position angle on U/I-Q/I plane.
 
-In input data (i.e., output of pol_XXX.py),
--pi < theta < pi 
-is the range.
-In this script, domain of definition is changed to be
-0 < theta < 2pi.
-
+In input data (i.e., output of pol_XXX.py), the domain of the definition is
+0 < theta < pi.
 
 The corrections are done in the following order 
 (same with Ishiguro+2017 and Geem+2022b, not Kawakami+2021):
@@ -20,110 +15,17 @@ The corrections are done in the following order
 The order of correction is 1. -> 3. -> 2. in Kawakami+2021.
 The important thing is not the order itself, but the derived P and theta
 are close to those in the literature.
+(TODO: is it true?)
 """
 import os 
 from argparse import ArgumentParser as ap
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt  
-from matplotlib.collections import PatchCollection
-from matplotlib.patches import Circle
 
-from calcerror import round_error
 from polana.visualization import mycolor, myls, mymark
-from polana.util import cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta
-
-
-def plot_obspolres(
-    ax, df, key, key_P="P", key_Perr="Perr", 
-    key_theta="theta", key_thetaerr="thetaerr", 
-    key_q="q", key_qerr="qerr", key_u="u", key_uerr="uerr",
-    color="black", marker="o", ls="solid"):
-    """
-    Plot observational result of polarymetry.
-    """
-    # Weighted mean
-    w_P = [1/x**2 for x in df[key_Perr]]
-    w_theta = [1/x**2 for x in df[key_thetaerr]]
-    wstd_P = np.sqrt(1/np.sum(w_P))
-    wstd_theta = np.sqrt(1/np.sum(w_theta))
-    wmean_P = np.average(df[key_P], weights=w_P)
-    wmean_theta = np.average(df[key_theta], weights=w_theta)
-
-    # Convert the domain of definition
-    if wmean_theta < 0:
-        # 2 theta = 2 theta + 2 pi
-        wmean_theta = wmean_theta + np.pi
-
-    # in percent 
-    wmean_P_percent, wstd_Perr_percent = 100.*wmean_P, 100.*wstd_P
-    P_percent, Perr_percent = round_error(wmean_P_percent, wstd_Perr_percent)
-
-
-    # in degree TODO:check
-    wmean_theta, wstd_theta = np.rad2deg(wmean_theta), np.rad2deg(wstd_theta)
-    theta, thetaerr = round_error(wmean_theta, wstd_theta)
-
-
-    label = (
-        f"{obj} {key}\n" + r"(P, $\theta$) = " 
-        + f"({P_percent}" r"$\pm$" + f"{Perr_percent} %, {theta}" + r"$\pm$" + f"{thetaerr} deg)")
-
-    ax.errorbar(
-        df[key_q], df[key_u], xerr=df[key_qerr], yerr=df[key_uerr],
-        ms=15, color=color, marker=" ", capsize=0, 
-        ls="None", label=None, zorder=1)
-    ax.scatter(
-        df[key_q], df[key_u], marker=marker, s=300, color=color, 
-        facecolor="None", zorder=1, label=label)
-
-    # Add circle pf P=Pobs
-    ax.add_collection(PatchCollection(
-        [Circle((0, 0), float(wmean_P))],
-        color=color, ls=ls, lw=1, facecolor="None")
-        )
-
-
-def plot_litpolres(
-    ax, key, P, Perr, theta, thetaerr, color="black", marker="o", ls="solid"):
-    """
-    Plot observational result of polarymetry.
-    """
-    # Input theta is in degree
-    label = (
-        f"{obj} {key}\n" + r"(P, $\theta$) = " 
-        + f"({P}" r"$\pm$" + f"{Perr} %, {theta}" + r"$\pm$" + f"{thetaerr} deg)")
-
-    # Convert to radians
-    theta = theta*np.pi/180.
-    thetaerr = thetaerr*np.pi/180.
-    # Convert to P < 1
-    P = P*0.01
-    Perr = Perr*0.01
-
-    q = P*np.cos(2*theta)
-    #np.cos(2*theta)**2*Perr**2 
-    qerr = np.sqrt(
-        np.cos(2*theta)**2*Perr**2 + 4*P**2*np.sin(2*theta)**2*thetaerr**2
-        )
-    u = P*np.sin(2*theta)
-    uerr = np.sqrt(
-        np.sin(2*theta)**2*Perr**2 + 4*P**2*np.cos(2*theta)**2*thetaerr**2
-        )
-
-    ax.errorbar(
-        q, u, xerr=qerr, yerr=uerr,
-        ms=15, color=color, marker=" ", capsize=0, 
-        ls="None", label=None, zorder=1)
-    ax.scatter(
-        q, u, marker=marker, s=300, color=color, 
-        facecolor="None", zorder=1, label=label)
-    width = 2*np.max([abs(q), abs(u)])
-    # Add circle pf P
-    ax.add_collection(PatchCollection(
-        [Circle((0, 0), float(P))],
-        color=color, ls=ls, lw=1, facecolor="None")
-        )
+from polana.util import round_error
+from polana.util_pol import cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta
 
 
 if __name__ == "__main__":
@@ -200,9 +102,11 @@ if __name__ == "__main__":
             df, "P_cor0", "theta_cor0", "Perr_cor0", "thetaerr_cor0",
             "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0")
         plot_obspolres(
-            ax, df, args.key_obs+"peff corrected", key_P="P_cor0", key_Perr="Perr_cor0",
+            ax, df, args.key_obs+"peff corrected", 
+            key_P="P_cor0", key_Perr="Perr_cor0",
             key_theta="theta_cor0", key_thetaerr="thetaerr_cor0",
-            key_q="q_cor0", key_qerr="qerr_cor0", key_u="u_cor0", key_uerr="uerr_cor0",
+            key_q="q_cor0", key_qerr="qerr_cor0", 
+            key_u="u_cor0", key_uerr="uerr_cor0",
             color=mycolor[3], marker=mymark[5], ls="solid")
 
         # 2. Correction of instrumental polarization with 'q_inst' and 'u_inst'.
@@ -213,9 +117,11 @@ if __name__ == "__main__":
             df, "P_cor1", "theta_cor1", "Perr_cor1", "thetaerr_cor1",
             "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1")
         plot_obspolres(
-            ax, df, args.key_obs+"inst corrected", key_P="P_cor1", key_Perr="Perr_cor1",
+            ax, df, args.key_obs+"inst corrected", 
+            key_P="P_cor1", key_Perr="Perr_cor1",
             key_theta="theta_cor1", key_thetaerr="thetaerr_cor1",
-            key_q="q_cor1", key_qerr="qerr_cor1", key_u="u_cor1", key_uerr="uerr_cor1",
+            key_q="q_cor1", key_qerr="qerr_cor1", 
+            key_u="u_cor1", key_uerr="uerr_cor1",
             color=mycolor[4], marker=mymark[6], ls="solid")
 
         # 3. Correction of position angle offset with 'pa_offset'.
@@ -226,13 +132,13 @@ if __name__ == "__main__":
             df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
             "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
         plot_obspolres(
-            ax, df, args.key_obs+"paoff corrected", key_P="P_cor2", key_Perr="Perr_cor2",
+            ax, df, args.key_obs+"paoff corrected", 
+            key_P="P_cor2", key_Perr="Perr_cor2",
             key_theta="theta_cor2", key_thetaerr="thetaerr_cor2",
-            key_q="q_cor2", key_qerr="qerr_cor2", key_u="u_cor2", key_uerr="uerr_cor2",
+            key_q="q_cor2", key_qerr="qerr_cor2", 
+            key_u="u_cor2", key_uerr="uerr_cor2",
             color=mycolor[2], marker=mymark[3], ls="solid")
     # Observation (after correction) ==========================================
-
-
 
 
     # Plot expected linear polarization degree
@@ -251,14 +157,12 @@ if __name__ == "__main__":
             ax, "Literature", P, Perr, theta, thetaerr, 
             color=mycolor[1], marker=mymark[1], ls="dotted")
         
-
-    ax.grid(which="major", axis="both")
     # Set range
     ax.set_xlim([-width, width])
     ax.set_ylim([-width, width])
 
+    ax.grid(which="major", axis="both")
     ax.legend(fontsize=12)
-
 
     if args.out:
         out = args.out
