@@ -20,12 +20,12 @@ import os
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
-from scipy.spatial import KDTree
 import sep
 import astropy.io.fits as fits
 
-from polana.util import *
-from polana.visualization import mycolor, myls
+from polana.util import utc2alphaphi, remove_bg_2d
+from polana.util_pol import polana_4angle
+from polana.visualization import mycolor
 
 
 if __name__ == "__main__":
@@ -185,8 +185,8 @@ if __name__ == "__main__":
                     bgerr = 0
 
                 else:
-                    img_e, bg_info_e = remove_background2d_pol(img_e)
-                    img_o, bg_info_o = remove_background2d_pol(img_o)
+                    img_e, bg_info_e = remove_bg_2d(img_e)
+                    img_o, bg_info_o = remove_bg_2d(img_o)
                     bgerr_e = np.round(bg_info_e["rms"], 2)
                     bgerr_o = np.round(bg_info_o["rms"], 2)
 
@@ -264,12 +264,17 @@ if __name__ == "__main__":
 
                 # Plot photometry region ======================================
                 if args.photmap:
+                    import matplotlib.pyplot as plt
+                    from matplotlib.collections import PatchCollection
+                    from matplotlib.patches import Circle
+                    from scipy.stats import sigmaclip
+
                     out = os.path.join(photmapdir, f"{fi}_photmap.png")
                     label_o = f"{args.obj} (xo, yo)=({xo1_full:.1f}, {yo1_full:.1f})"
                     label_e = f"{args.obj} (xe, ye)=({xe1_full:.1f}, {ye1_full:.1f})"
 
                     color_o, color_e = mycolor[0], mycolor[1]
-                    ls = myls[0]
+                    ls = "solid"
 
                     # Plot src image after 5-sigma clipping 
                     sigma = 5
