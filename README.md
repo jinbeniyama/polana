@@ -1,13 +1,15 @@
 # Polarimetric analysis (polana)
 [developer mail](mailto:beniyama@ioa.s.u-tokyo.ac.jp)
+
 The icon of the repository is DIPOL-2 from Piirola et al. (2014).
 
 ## Overview
 Analyze polarimetric data obtained with 
+
 - Multi-Spectral Imager (MSI, no paper yet for poolarimetry)
 - Wide Field Grism Spectrograph 2 (WFGS2, [Kawakami et al. 2021](https://doi.org/10.32231/starsandgalaxies.4.0_5))
 - Hiroshima Optical and Near-InfraRed Camera (HONIR, [Akitaya et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..4OA/abstract)) 
-- Double Image High Precision Polarimeter (DIPOL-2, [Piirola et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract).
+- Double Image High Precision Polarimeter (DIPOL-2, [Piirola et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract)).
 
 
 ## Installing
@@ -16,6 +18,7 @@ Please install by pip (sorry in prep.), otherwise open paths to src and dipolana
 ## Usage
 Before polarimetry, we should check the source location in pixel coordinates
 by eye using fits viewer such as ds9 and save it as `input.txt`.
+Polarimetric parameters, q, u, P, theta, and their uncertainties, are saved in the output file.
 
 ### 1. MSI 
 The 1 set consists of 4 images obtained with angles of half-wave plates at 0, 45, 22.5, and 67.5.
@@ -40,7 +43,7 @@ pol_MSI.py "HD19820" input.txt  --radius 20 --width 60
 
 ### 2. WFGS2
 Essentially the same with MSI.
-but the 1 set consists of 8 images since ordinary and extraordinary images are
+But the 1 set consists of 8 images since ordinary and extraordinary images are
 separated into different fits files.
 The format of `input.txt` is as follows:
 (Do not think! Feel the meaning of each column.)
@@ -64,8 +67,8 @@ In prep.
 
 
 ## Acknowledgments
-I would like to express the gratitude to the people involved in OISTER and T60/DIPOL-2.
-[OISTER website](https://oister.kwasan.kyoto-u.ac.jp/)
+I would like to express the gratitude to the people involved in 
+[OISTER](https://oister.kwasan.kyoto-u.ac.jp/) and T60/DIPOL-2.
 
 
 ## Dependencies
