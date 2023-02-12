@@ -63,10 +63,11 @@ def projectP2scaplane(
     # Most previous studies 
     # (De Luise+2007, Kuroda+2018, 2021, Geem+2022a, Kiselev+2022)
     # seem to assume Prerr = Perr......?
-    df[key_Prerr] = np.sqrt(
-            (np.cos(2*df[key_thetar])*df[key_Perr])**2 
-            + (2*df[key_P]*np.sin(2*df[key_thetar]))**2
-            )
+    #df[key_Prerr] = np.sqrt(
+    #        (np.cos(2*df[key_thetar])*df[key_Perr])**2 
+    #        + (2*df[key_P]*np.sin(2*df[key_thetar]))**2
+    #        )
+    df[key_Prerr] = df[key_Perr]
     return df
 
 
@@ -524,8 +525,29 @@ def calc_Ptheta(
     df[key_Perr] = np.sqrt(
         df[key_q]**2*df[key_qerr]**2 + df[key_u]**2*df[key_uerr]**2
         )/df[key_P]
+    
+    # Correct positive bias in the linear polarization degree
+    if (df[key_P]**2 - df[key_Perr]**2).any() < 0:
+        df[key_P] = 0
+    else:
+        df[key_P] = np.sqrt(df[key_P]**2 - df[key_Perr]**2)
 
-    df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
+    # arctan2(y, x) returns arctan(y/x)
+    # By default, domain of definition of arctan2 is from -pi to pi.
+    # But 
+    #   the domain of definition of position angle theta is from 0 to pi,
+    #   and that of arctan(U/Q) is from 0 to 2 pi.
+
+    # TODO:update Assume all signs of u are the same
+    mean_arctan2 = np.mean(np.arctan2(df[key_u], df[key_q]))
+    if mean_arctan2 > 0:
+        df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
+    elif mean_arctan2 < 0:
+        # Convert the domain of definition "from -pi to 0" to "from 0 to pi"
+        df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
+
+    assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
+
     # 1. standard calculation
     #df[key_thetaerr] = np.sqrt(
     #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
