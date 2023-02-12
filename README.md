@@ -1,7 +1,6 @@
 # Polarimetric analysis (polana)
 [developer mail](mailto:beniyama@ioa.s.u-tokyo.ac.jp)
-
-Photo from Piirola et al. (2014).
+The icon of the repository is DIPOL-2 from Piirola et al. (2014).
 
 ## Overview
 Analyze data obtained with MSI, WFGS2, HONIR, and DIPOL-2.
@@ -9,12 +8,11 @@ Analyze data obtained with MSI, WFGS2, HONIR, and DIPOL-2.
 ## Installing
 Please install by pip, otherwise open paths to src and dipolana directories by yourself.
 
-
 ## Acknowledgments
-I would like to express the gratitude to the people involved in T60/DIPOL-2.
+I would like to express the gratitude to the people involved in OISTER and T60/DIPOL-2.
 
-The DIPOL-2 paper is 
-[Piirola et al. (2014), DIPOL-2: a double image high precision polarimeter, Proceedings of the SPIE, Volume 9147, id. 91478I 9 pp](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract).
+[OISTER website](https://oister.kwasan.kyoto-u.ac.jp/)
+[DIPOL-2 paper Piirola et al. (2014), DIPOL-2: a double image high precision polarimeter, Proceedings of the SPIE, Volume 9147, id. 91478I 9 pp](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract).
 
 
 ## Dependencies
