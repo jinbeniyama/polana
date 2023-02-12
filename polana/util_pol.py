@@ -3,11 +3,8 @@
 """
 Useful functions for polarimetry.
 """
-import os 
-from argparse import ArgumentParser as ap
 import numpy as np
 import pandas as pd
-from astropy import units as u
 
 
 def projectP2scaplane(
