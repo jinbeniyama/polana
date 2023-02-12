@@ -23,12 +23,12 @@ import os
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
-from scipy.spatial import KDTree
 import sep
 import astropy.io.fits as fits
 
-from polana.util import *
-from polana.visualization import mycolor, myls
+from polana.util import utc2alphaphi, remove_bg_2d
+from polana.util_pol import polana_4angle
+from polana.visualization import mycolor
 
 
 if __name__ == "__main__":
@@ -175,7 +175,7 @@ if __name__ == "__main__":
                     # Temporally
                     bgerr = 0
                 else:
-                    img, bg_info = remove_background2d_pol(img)
+                    img, bg_info = remove_bg_2d(img)
                     bgerr = np.round(bg_info["rms"], 2)
                     #print("")
                     #print(f"Subtracted Mean: {np.mean(img)}")
@@ -233,10 +233,15 @@ if __name__ == "__main__":
 
                 # Plot photometry region ======================================
                 if args.photmap:
+                    import matplotlib.pyplot as plt
+                    from matplotlib.collections import PatchCollection
+                    from matplotlib.patches import Circle
+                    from scipy.stats import sigmaclip
+
                     out = os.path.join(photmapdir, f"{fi}_photmap.png")
                     label = f"{args.obj} (x, y)=({x0}, {y0})"
                     color = mycolor[0]
-                    ls = myls[0]
+                    ls = "solid"
 
                     # Plot src image after 5-sigma clipping 
                     sigma = 5
