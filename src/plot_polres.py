@@ -23,8 +23,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt  
 
-from polana.visualization import mycolor, myls, mymark
-from polana.util import round_error
+from polana.visualization import mycolor, myls, mymark, plot_obspolres, plot_litpolres
 from polana.util_pol import cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta
 
 
@@ -80,7 +79,7 @@ if __name__ == "__main__":
 
     # Observation (raw) =======================================================
     plot_obspolres(
-        ax, df, args.key_obs, color=mycolor[0], marker=mymark[0], ls="dashed")
+        ax, df, args.key_obs, obj, color=mycolor[0], marker=mymark[0], ls="dashed")
     width = 2*np.max([
         abs(np.min(df["q"])), abs(np.max(df["q"])),
         abs(np.min(df["u"])), abs(np.max(df["u"]))
@@ -102,7 +101,7 @@ if __name__ == "__main__":
             df, "P_cor0", "theta_cor0", "Perr_cor0", "thetaerr_cor0",
             "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0")
         plot_obspolres(
-            ax, df, args.key_obs+"peff corrected", 
+            ax, df, args.key_obs+"peff corrected",  obj,
             key_P="P_cor0", key_Perr="Perr_cor0",
             key_theta="theta_cor0", key_thetaerr="thetaerr_cor0",
             key_q="q_cor0", key_qerr="qerr_cor0", 
@@ -117,7 +116,7 @@ if __name__ == "__main__":
             df, "P_cor1", "theta_cor1", "Perr_cor1", "thetaerr_cor1",
             "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1")
         plot_obspolres(
-            ax, df, args.key_obs+"inst corrected", 
+            ax, df, args.key_obs+"inst corrected", obj,
             key_P="P_cor1", key_Perr="Perr_cor1",
             key_theta="theta_cor1", key_thetaerr="thetaerr_cor1",
             key_q="q_cor1", key_qerr="qerr_cor1", 
@@ -132,7 +131,7 @@ if __name__ == "__main__":
             df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
             "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
         plot_obspolres(
-            ax, df, args.key_obs+"paoff corrected", 
+            ax, df, args.key_obs+"paoff corrected", obj,
             key_P="P_cor2", key_Perr="Perr_cor2",
             key_theta="theta_cor2", key_thetaerr="thetaerr_cor2",
             key_q="q_cor2", key_qerr="qerr_cor2", 
@@ -154,7 +153,7 @@ if __name__ == "__main__":
         thetaerr = args.thetaerr
 
         plot_litpolres(
-            ax, "Literature", P, Perr, theta, thetaerr, 
+            ax, "Literature", obj, P, Perr, theta, thetaerr, 
             color=mycolor[1], marker=mymark[1], ls="dotted")
         
     # Set range
