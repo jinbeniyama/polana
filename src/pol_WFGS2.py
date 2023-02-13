@@ -27,7 +27,8 @@ import sep
 import astropy.io.fits as fits
 
 from polana.util import utc2alphaphi, remove_bg_2d
-from polana.util_pol import polana_4angle
+from polana.util_pol import (
+    polana_4angle, cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta)
 from polana.visualization import mycolor
 
 
