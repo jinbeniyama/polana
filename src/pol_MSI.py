@@ -183,7 +183,8 @@ if __name__ == "__main__":
                     print("    !! Do not subtract background with sep!!")
                     print(f"    !! Simply subtract median {np.median(img):.1f} ADU!!")
                     # For error calculation in sep.sum_circle
-                    bgerr = 0
+                    bgerr_e = 0
+                    bgerr_o = 0
 
                 else:
                     img_e, bg_info_e = remove_bg_2d(img_e)
@@ -234,7 +235,6 @@ if __name__ == "__main__":
                 print(f"  Aperture location after baricenter search")
                 print(f"    xe0, ye0 = {xe0:.2f}, {ye0:.2f}")
                 print(f"    xe1, ye1 = {xe1_full:.2f}, {ye1_full:.2f}")
-
                 # Source detection ============================================
 
 
