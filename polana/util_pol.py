@@ -202,9 +202,9 @@ def cor_poleff(
         pefferr = 0.0
 
     if inst == "HONIR":
-        # TODO:check
         # From Geem+2022b
-        peff    = 0.9858
+        # TODO:check 0.9578 or 0.9858
+        peff    = 0.9758
         pefferr = 0.0008
 
     df[key_q_cor] = df[key_q]/peff
@@ -342,54 +342,67 @@ def cor_paoffset(
         output dataframe with u, q, etc.
     """
 
-    # In degree
-    
+    # Care should be taken when it comes to theta_off.
+    # In Ishiguro+2017, theta_off is 3.38 deg for MSI.
+    # The definition of theta_off is unclear, but they
+    # defined it as theta_off = theta_obs - theta_lt.
+    # Then theta_off = 3.38.
+
+    # In Kawakami+2021, theta_off is -5.19 for WFGS2.
+    # The definition of theta_off is clear. They
+    # defined it as theta_off = theta_lt - theta_obs.
+    # Then theta_off = -5.19.
+
+    # The definition for HONIR is the same with WFGS2. 
+    # (Based on JB's mesurements. Thanks to large theta_off, 
+    # it is easily tested changing the sign of theta_off in this code below.)
+
+    # We use the same definition of theta_off with Kawakami+2021.
+    # Thus we use theta_off = -3.38 for MSI.
+
+
     # Check the sign carefully !!!
     if inst == "MSI":
-        # From Ishiguro+2017 (, Geem+2022a) 3.38
-        # But definition of theta_off is different!
-        # Here we use theta_off = theta_lt - theta_obs.
-        # Thus, -3.38
+        # Here we use theta_off = theta_lt - theta_obs ~ -3.38
         if band == "Rc" or "R":
             # 2015 Values !!
-            paoffset    = -3.38
-            paoffseterr = 0.37
-            # after 2022-03
-            paoffset    = -3.54
-            paoffseterr = 0.11
+            theta_off    = -3.38
+            theta_offerr = 0.37
+            # After 2022-03
+            theta_off    = -3.54
+            theta_offerr = 0.11
         if band == "V":
             # 2015 Values !!
-            paoffset    = -3.82
-            paoffseterr = 0.38
-            # after 2022-03
-            paoffset    = -3.84
-            paoffseterr = 0.14
+            theta_off    = -3.82
+            thta_offerr = 0.38
+            # After 2022-03
+            theta_off    = -3.84
+            thtea_offerr = 0.14
 
     if inst == "WFGS2":
-        # From Geem+2022b. The value and calculation is ok for this script.
-        # But in Geem+2022b, the calculation is inconsistent with offset...?
-        paoffset    = -5.19
-
-        # This is ok. Result is similar to that derived using coefficients in
-        # Kawakami+2021. (beta = -5.68 deg in Rc)
-        #paoffset    = -5.68
-        paoffseterr =  0.00
+        if band == "Rc" or "R":
+            # From Kawakami+2021. (beta = -5.68 deg in Rc)
+            #paoffset    = -5.68
+            #paoffseterr =  0.00
+            # From Geem+2022b. 
+            theta_off    = -5.19
+            theta_offerr =  0.00
 
     if inst == "HONIR":
-        # From Geem+2022b
-        # -36.8 ??? 
-        paoffset    = 36.8
-        paoffseterr = 0.13
+        if band == "Rc" or "R":
+            # Seems very good for HD19820 data taken on 2022-12-27 !!
+            # And consistent with Geem+2022b
+            theta_off    = 36.8
+            theta_offerr = 0.13
     
-    # In degree
-    # Here, paoffset = theta_lt - theta_obs,
-    # which is different from those defined in Ishigur+2017, Okazaki+2021.
+    # TODO: check
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
-    thetarot    = paoffset - df[key_instpa]
+    # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
+    thetarot    = theta_off - df[key_instpa]
     instpaerr = 0
     thetaroterr = np.sqrt(
-        paoffseterr**2 + instpaerr**2
+        theta_offerr**2 + instpaerr**2
         )
 
     # In radian
@@ -402,6 +415,7 @@ def cor_paoffset(
     df[key_u_cor] =  (
         np.sin(2*thetarot)*df[key_q] + np.cos(2*thetarot)*df[key_u]
         )
+
     # The errors are the same (only rotation)
     # TODO: systematic error?
     df[key_qerr_cor] = df[key_qerr]
@@ -415,7 +429,7 @@ def calc_Ptheta(
     key_P="P", key_theta="theta", key_Perr="Perr", key_thetaerr="thetaerr",
     key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr"):
 
-    # Calculate P_cor and theta_cor
+    # Calculate initial P_cor and theta_cor
     df[key_P] = np.sqrt(
         df[key_q]**2 + df[key_u]**2
         )
@@ -423,11 +437,24 @@ def calc_Ptheta(
         df[key_q]**2*df[key_qerr]**2 + df[key_u]**2*df[key_uerr]**2
         )/df[key_P]
     
+    # Calculate thetaerr before correction of P
+    # 1. standard calculation
+    #df[key_thetaerr] = np.sqrt(
+    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
+    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
+    #    )
+    # 2. useful result
+    df[key_thetaerr] = 0.5*df[key_Perr]/df[key_P]
+    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
+
     # Correct positive bias in the linear polarization degree
-    if (df[key_P]**2 - df[key_Perr]**2).any() < 0:
-        df[key_P] = 0
-    else:
-        df[key_P] = np.sqrt(df[key_P]**2 - df[key_Perr]**2)
+    for idx_row, row in df.iterrows():
+        P    = row[key_P]
+        Perr = row[key_Perr]
+        if P**2 - Perr**2 < 0:
+            df.at[idx_row, key_P] = 0
+        else:
+            df.at[idx_row, key_P] =  np.sqrt(P**2 - Perr**2)
 
     # arctan2(y, x) returns arctan(y/x)
     # By default, domain of definition of arctan2 is from -pi to pi.
@@ -442,17 +469,8 @@ def calc_Ptheta(
     elif mean_arctan2 < 0:
         # Convert the domain of definition "from -pi to 0" to "from 0 to pi"
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
-
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
 
-    # 1. standard calculation
-    #df[key_thetaerr] = np.sqrt(
-    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
-    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
-    #    )
-    # 2. useful result
-    df[key_thetaerr] = 0.5*df[key_Perr]/df[key_P]
-    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
 
     return df
 
