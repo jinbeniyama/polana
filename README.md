@@ -6,7 +6,7 @@ The icon of the repository is DIPOL-2 from Piirola et al. (2014).
 ## Overview
 Analyze polarimetric data obtained with 
 
-- Multi-Spectral Imager (MSI, no paper yet for poolarimetry)
+- Multi-Spectral Imager (MSI, no paper has been published about polarimetry)
 - Wide Field Grism Spectrograph 2 (WFGS2, [Kawakami et al. 2021](https://doi.org/10.32231/starsandgalaxies.4.0_5))
 - Hiroshima Optical and Near-InfraRed Camera (HONIR, [Akitaya et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..4OA/abstract)) 
 - Double Image High Precision Polarimeter (DIPOL-2, [Piirola et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract)).
@@ -60,7 +60,30 @@ x y fits
 ```
 
 ### 3. HONIR
-In prep.
+Before polarimetry, we should check the source location in pixel coordinates
+by eye using fits viewer such as ds9 and save it as `input.txt`.
+Polarimetric parameters, q, u, P, theta, and their uncertainties, are saved in the output file.
+
+### 1. MSI 
+The 1 set consists of 4 images obtained with angles of half-wave plates at 0, 45, 22.5, and 67.5.
+The format of `input.txt` is as follows:
+(Do not think! Feel the meaning of each column.)
+```
+xo yo xe ye fits
+88 267 248 271 HN0322604opt00_bt_bs_fl_clip.fits
+86 269 248 271 HN0322605opt00_bt_bs_fl_clip.fits
+89 269 249 273 HN0322606opt00_bt_bs_fl_clip.fits
+88 271 248 273 HN0322607opt00_bt_bs_fl_clip.fits
+```
+
+```
+[usage]
+pol_HONIR.py (object name) (input file)  --radius (circular aperture radius in pixex) --width (width of baricentric search)
+
+[example]
+pol_HONIR.py "HD19820" input.txt  --radius 20 --width 60
+```
+
 
 ### 4. DIPOL-2
 In prep.
