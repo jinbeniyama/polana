@@ -8,7 +8,6 @@ import pandas as pd
 import datetime
 from astroquery.jplhorizons import Horizons
 from decimal import Decimal, ROUND_HALF_UP
-from scipy.stats import sigmaclip
 import sep
 
 
@@ -26,7 +25,10 @@ def utc2alphaphi(obj, ut, loc):
     loc : str
         location of the observatory (MPC code)
     """
-    t0_dt = datetime.datetime.strptime(ut, "%Y-%m-%dT%H:%M:%S.%f")
+    try:
+        t0_dt = datetime.datetime.strptime(ut, "%Y-%m-%dT%H:%M:%S.%f")
+    except:
+        t0_dt = datetime.datetime.strptime(ut, "%Y-%m-%dT%H:%M:%S")
     t1_dt = t0_dt + datetime.timedelta(minutes=5)
     t0 = datetime.datetime.strftime(t0_dt, "%Y-%m-%dT%H:%M:%S.%f")
     t1 = datetime.datetime.strftime(t1_dt, "%Y-%m-%dT%H:%M:%S.%f")
@@ -194,26 +196,34 @@ def round_error(value, err):
 
 
 # Photometry ==================================================================
-def remove_background2d_pol(image, mask=None):
+def remove_bg_2d(image, mask=None, bw=64, fw=3):
     """ Remove background from 2D FITS
+
+    Parameters
+    ----------
+    image : array-like
+        input image to be background subtracted
+    mask : array-like
+        mask array 
+    bw : int
+        box width 
+    fw : int
+        filter width 
+
+    Returns
+    -------
+    image : array like
+        background subtracted image
+    bg_info : dict
+        background info.
+
     """
-    bg_engine = sep.Background(image, mask=mask)
+    bg_engine = sep.Background(
+        image, mask=mask, bw=bw, bh=bw, fw=fw, fh=fw)
     bg_engine.subfrom(image)
     bg_global = bg_engine.globalback
     bg_rms = bg_engine.globalrms
     bg_info = {'level': bg_global, 'rms': bg_rms}
     bg = bg_engine.back()
     return image, bg_info
-
-
-def extract(image, sigma, minarea, err, mask, swapped=True, logger=None):
-    """ extract objects from the image
-    """
-    if mask is None: mask = np.zeros_like(image)
-    if not swapped: image = image.byteswap().newbyteorder()
-
-    objects = sep.extract(
-        image, sigma, minarea=minarea, err=err, mask=mask)
-    n_obj = len(objects)
-    return objects
 # Photometry ==================================================================
