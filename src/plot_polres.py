@@ -111,7 +111,7 @@ if __name__ == "__main__":
         # 2. Correction of instrumental polarization with 'q_inst' and 'u_inst'.
         df = cor_instpol(
             df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
-            "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot")
+            "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot1", "insrot2")
         df = calc_Ptheta(
             df, "P_cor1", "theta_cor1", "Perr_cor1", "thetaerr_cor1",
             "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1")
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         # 3. Correction of position angle offset with 'pa_offset'.
         df = cor_paoffset(
             df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
-            "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+            "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
         df = calc_Ptheta(
             df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
             "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
