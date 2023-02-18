@@ -31,7 +31,8 @@ import astropy.io.fits as fits
 
 from polana.util import utc2alphaphi, remove_bg_2d, loc_Pirka
 from polana.util_pol import (
-    polana_4angle, cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta)
+    polana_4angle, cor_poleff, cor_instpol, cor_paoffset, 
+    calc_Ptheta, projectP2scaplane)
 from polana.visualization import mycolor
 
 
@@ -113,6 +114,9 @@ if __name__ == "__main__":
     alpha_list, phi_list, P_list, Perr_list = [], [], [], []
     theta_list, thetaerr_list     = [], []
     insrot_list, instpa_list      = [], []
+    utc000_list, utc450_list      = [], []
+    utc225_list, utc675_list      = [], []
+
     for x in args.inp:
         # Read input files
         df_in = pd.read_csv(x, sep=" ")
@@ -369,11 +373,13 @@ if __name__ == "__main__":
             # 1 set results (Length = 4)
             df_res = pd.concat(df_res_list, axis=0)
             df_res = df_res.reset_index()
+
         
             # Calculate linear polarization degree P
             u, uerr, q, qerr, P, Perr, theta, thetaerr = polana_4angle(df_res)
             print(f"  Polarization degree P = {P:.3f}+-{Perr:.3f}")
             print(f"  Position              = {theta:.3f}+-{thetaerr:.3f}")
+
             u_list.append(u)
             uerr_list.append(uerr)
             q_list.append(q)
@@ -384,6 +390,16 @@ if __name__ == "__main__":
             thetaerr_list.append(thetaerr)
             insrot_list.append(insrot)
             instpa_list.append(instpa)
+
+            # UTC
+            utc000 = df_res[df_res["angle"]=="0000"].utc.values.tolist()[0]
+            utc450 = df_res[df_res["angle"]=="0450"].utc.values.tolist()[0]
+            utc225 = df_res[df_res["angle"]=="0225"].utc.values.tolist()[0]
+            utc675 = df_res[df_res["angle"]=="0675"].utc.values.tolist()[0]
+            utc000_list.append(utc000)
+            utc450_list.append(utc450)
+            utc225_list.append(utc225)
+            utc675_list.append(utc675)
 
             if args.mp:
                 # Obtain phase angle with object name
@@ -406,7 +422,11 @@ if __name__ == "__main__":
         if args.mp:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
-                alpha=alpha_list, phi=phi_list,
+                alpha=alpha_list, phi=phi_list, 
+                utc000 = utc000_list, 
+                utc450 = utc450_list, 
+                utc225 = utc225_list, 
+                utc675 = utc675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
@@ -416,6 +436,10 @@ if __name__ == "__main__":
         else:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
+                utc000 = utc000_list, 
+                utc450 = utc450_list, 
+                utc225 = utc225_list, 
+                utc675 = utc675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
@@ -437,5 +461,10 @@ if __name__ == "__main__":
             df = calc_Ptheta(
                 df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
+
+            if args.mp:
+                df = projectP2scaplane(
+                    df, "Pr", "Prerr", "thetar", "thetarerr", 
+                    "P_cor2", "Perr_cor2", "theta_cor2", "thetaerr_cor2", "phi")
 
         df.to_csv(out, sep=" ", index=False)
