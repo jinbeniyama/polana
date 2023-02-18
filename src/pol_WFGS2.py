@@ -18,6 +18,12 @@ The position angle of instument due to rotator is saved as INSROT.
 INSROT  =              135.583 / Typical inst rot. Angle ar exp.(degree)
 Typical postion angle of instrument is saved as INST-PA (fixed value).
 INST-PA =                  0.0 / Approx PA of instrument (deg)
+
+Note:
+With --mp option, phase angle and position angle of the scattering plane
+can be obtained. Pr and Ptheta are calculated.
+But those calculations need to be done using the same aspect data in the 
+table of the paper.
 """
 import os
 import numpy as np

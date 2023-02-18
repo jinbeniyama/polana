@@ -12,6 +12,11 @@ xo yo xe ye fits
 The position angle of HWP is saved as HWPANGLE.
 
 
+Note:
+With --mp option, phase angle and position angle of the scattering plane
+can be obtained. Pr and Ptheta are calculated.
+But those calculations need to be done using the same aspect data in the 
+table of the paper.
 """
 import os
 import numpy as np
