@@ -116,6 +116,8 @@ if __name__ == "__main__":
     insrot_list, instpa_list      = [], []
     utc000_list, utc450_list      = [], []
     utc225_list, utc675_list      = [], []
+    fi000_list, fi450_list        = [], []
+    fi225_list, fi675_list        = [], []
 
     for x in args.inp:
         # Read input files
@@ -368,6 +370,7 @@ if __name__ == "__main__":
                 date = hdr[key_date]
                 ut = hdr[key_ut]
                 info["utc"] = f"{date}T{ut}"
+                info["fits"] = fi
                 df_res = pd.DataFrame(info.values(), index=info.keys()).T
                 df_res_list.append(df_res)
             # 1 set results (Length = 4)
@@ -401,6 +404,16 @@ if __name__ == "__main__":
             utc225_list.append(utc225)
             utc675_list.append(utc675)
 
+            # Fits
+            fi000 = df_res[df_res["angle"]=="0000"].fits.values.tolist()[0]
+            fi450 = df_res[df_res["angle"]=="0450"].fits.values.tolist()[0]
+            fi225 = df_res[df_res["angle"]=="0225"].fits.values.tolist()[0]
+            fi675 = df_res[df_res["angle"]=="0675"].fits.values.tolist()[0]
+            fi000_list.append(fi000)
+            fi450_list.append(fi450)
+            fi225_list.append(fi225)
+            fi675_list.append(fi675)
+
             if args.mp:
                 # Obtain phase angle with object name
                 # Use the first time
@@ -427,6 +440,10 @@ if __name__ == "__main__":
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
                 utc675 = utc675_list, 
+                fi000 = fi000_list, 
+                fi450 = fi450_list, 
+                fi225 = fi225_list, 
+                fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
@@ -440,6 +457,10 @@ if __name__ == "__main__":
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
                 utc675 = utc675_list, 
+                fi000 = fi000_list, 
+                fi450 = fi450_list, 
+                fi225 = fi225_list, 
+                fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
