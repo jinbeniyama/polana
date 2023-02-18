@@ -306,13 +306,13 @@ def cor_instpol(
         )
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
-        + (np.cos(2*insrot)*qinsterr)**2 
-        + (np.sin(2*insrot)*uinsterr)**2 
+        + (np.cos(2*insrot1)*qinsterr)**2 
+        + (np.sin(2*insrot2)*uinsterr)**2 
         )
     df[key_uerr_cor] = np.sqrt(
         df[key_uerr]**2 
-        + (np.sin(2*insrot)*qinsterr)**2 
-        + (np.cos(2*insrot)*uinsterr)**2 
+        + (np.sin(2*insrot1)*qinsterr)**2 
+        + (np.cos(2*insrot2)*uinsterr)**2 
         )
 
     return df
