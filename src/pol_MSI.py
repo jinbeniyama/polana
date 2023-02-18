@@ -112,6 +112,7 @@ if __name__ == "__main__":
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
     alpha_list, phi_list, P_list, Perr_list = [], [], [], []
+    texp_list = []
     theta_list, thetaerr_list     = [], []
     insrot_list, instpa_list      = [], []
     utc000_list, utc450_list      = [], []
@@ -154,8 +155,8 @@ if __name__ == "__main__":
                 ny, nx = img.shape[0], img.shape[1]
                 print(f"    Data dimension nx, ny = {nx}, {ny}")
                 # Exposure time
-                t_exp = src.header[key_texp]
-                print(f"    Exposure time {t_exp} s")
+                texp = src.header[key_texp]
+                print(f"    Exposure time {texp} s")
 
                 # Original coordinates
                 xo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xo"]
@@ -221,8 +222,10 @@ if __name__ == "__main__":
                 # 5-sigma detection
                 dth     = 5
                 minarea = 10
-                objects_e = sep.extract(img_e, dth, err=bgerr_e, minarea=minarea, mask=None)
-                objects_o = sep.extract(img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
+                objects_e = sep.extract(
+                    img_e, dth, err=bgerr_e, minarea=minarea, mask=None)
+                objects_o = sep.extract(
+                    img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
                 N_obj_e   = len(objects_e)
                 N_obj_o   = len(objects_o)
                 print("Objects in e")
@@ -393,6 +396,7 @@ if __name__ == "__main__":
             thetaerr_list.append(thetaerr)
             insrot_list.append(insrot)
             instpa_list.append(instpa)
+            texp_list.append(texp)
 
             # UTC
             utc000 = df_res[df_res["angle"]=="0000"].utc.values.tolist()[0]
@@ -436,6 +440,7 @@ if __name__ == "__main__":
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
                 alpha=alpha_list, phi=phi_list, 
+                texp=exp_list,
                 utc000 = utc000_list, 
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
@@ -453,6 +458,7 @@ if __name__ == "__main__":
         else:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
+                texp=exp_list,
                 utc000 = utc000_list, 
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 

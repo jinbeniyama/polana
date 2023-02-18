@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
 
     fig = plt.figure(figsize=(8, 8)) 
-    ax = fig.add_axes([0.20, 0.20, 0.78, 0.78])
+    ax = fig.add_axes([0.20, 0.15, 0.78, 0.78])
     ax.set_xlabel(f"q = Q/I")
     ax.set_ylabel(f"u = U/I")
 
