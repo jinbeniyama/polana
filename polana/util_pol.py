@@ -403,7 +403,7 @@ def cor_paoffset(
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
     # thetarot    = theta_off - df[key_instpa]
-    # instpaerr = 0
+    instpaerr = 0
 
     thetarot    = theta_off
     thetaroterr = np.sqrt(
