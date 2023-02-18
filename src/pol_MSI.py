@@ -8,11 +8,17 @@ xo yo xe ye fits
 273 183 239 65 msi221221_805279.fits
 .
 
-The position angle of HWP is saved as RET-ANG2.
+Pixel scale is 0.39 arcsec/pix. (Ishiguro+2017)
 
+The position angle of HWP is saved as RET-ANG2.
 RET-ANG2=             22.50000 / [deg] Position angle of retarder plate 2
+
 The position angle of instument due to rotator is saved as INSROT.
+(at the time of exposure start)
 INSROT  =             73.25892 / [deg] Typical instrument rotator angle
+# See also
+# INR-STR =             73.32436 / [deg] Instrument rotator angle at start
+# INR-END =             73.31528 / [deg] Instrument rotator angle at end
 Typical postion angle of instrument is saved as INST-PA (fixed value).
 INST-PA =               -0.520 / [deg] Typical position angle of instrument
 """
@@ -23,7 +29,7 @@ from argparse import ArgumentParser as ap
 import sep
 import astropy.io.fits as fits
 
-from polana.util import utc2alphaphi, remove_bg_2d
+from polana.util import utc2alphaphi, remove_bg_2d, loc_Pirka
 from polana.util_pol import (
     polana_4angle, cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta)
 from polana.visualization import mycolor
@@ -38,9 +44,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "inp", type=str, nargs="*",
         help="Input file with certain format")
-    parser.add_argument(
-        "--loc", type=str, default="Q33",
-        help="Observation location (MPC code)")
     parser.add_argument(
         "--mp", action='store_true',
         help='Save phase angle in the output for minor planet')
@@ -187,6 +190,7 @@ if __name__ == "__main__":
                     bgerr_o = 0
 
                 else:
+                    #img_e, bg_info_e = remove_bg_2d(img_e, bw=100, fw=30)
                     img_e, bg_info_e = remove_bg_2d(img_e)
                     img_o, bg_info_o = remove_bg_2d(img_o)
                     bgerr_e = np.round(bg_info_e["rms"], 2)
@@ -215,6 +219,10 @@ if __name__ == "__main__":
                 objects_o = sep.extract(img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
                 N_obj_e   = len(objects_e)
                 N_obj_o   = len(objects_o)
+                print("Objects in e")
+                print(objects_e)
+                print("Objects in o")
+                print(objects_o)
                 assert N_obj_e == 1, "Check the coordinates"
                 assert N_obj_o == 1, "Check the coordinates"
 
@@ -279,10 +287,10 @@ if __name__ == "__main__":
 
                     # Plot src image after 5-sigma clipping 
                     sigma = 5
-                    _, vmin, vmax = sigmaclip(img, sigma, sigma)
 
                     fig = plt.figure(figsize=(12,int(12*ny/nx)))
                     ax = fig.add_subplot(111)
+                    _, vmin, vmax = sigmaclip(img, sigma, sigma)
                     ax.imshow(img, cmap='gray', vmin=vmin, vmax=vmax)
 
                     # Ordainary
@@ -381,7 +389,7 @@ if __name__ == "__main__":
                 # Obtain phase angle with object name
                 # Use the first time
                 ut = df_res.at[0, "utc"]
-                alpha, phi = utc2alphaphi(args.obj, ut, args.loc)
+                alpha, phi = utc2alphaphi(args.obj, ut, loc_Pirka)
                 alpha_list.append(alpha)
                 phi_list.append(phi)
 

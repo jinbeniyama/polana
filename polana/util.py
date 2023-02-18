@@ -10,6 +10,21 @@ from astroquery.jplhorizons import Horizons
 from decimal import Decimal, ROUND_HALF_UP
 import sep
 
+# elevation in km
+loc_Pirka = "Q33"
+# NHAO: http://www.nhao.jp/research/nayuta_telescope.html
+loc_Nayuta = {
+    "lon": 134.3356,
+    "lat": 35.0253,
+    "elevation": 0.449
+    }
+# Higashi-Hiroshima: https://www.hiroshima-u.ac.jp/hasc/hho_kanata
+loc_Kanata = {
+    "lon": 132.7767,
+    "lat": 34.3775,
+    "elevation": 0.5112
+    }
+
 
 def utc2alphaphi(obj, ut, loc):
     """
@@ -23,7 +38,7 @@ def utc2alphaphi(obj, ut, loc):
     ut : str
         utc like "2022-12-21T15:53:07.3"
     loc : str
-        location of the observatory (MPC code)
+        location of the observatory, MPC code or dictinary (lon, lat, elevation) 
     """
     try:
         t0_dt = datetime.datetime.strptime(ut, "%Y-%m-%dT%H:%M:%S.%f")

@@ -26,7 +26,7 @@ from argparse import ArgumentParser as ap
 import sep
 import astropy.io.fits as fits
 
-from polana.util import utc2alphaphi, remove_bg_2d
+from polana.util import utc2alphaphi, remove_bg_2d, loc_Nayuta
 from polana.util_pol import (
     polana_4angle, cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta)
 from polana.visualization import mycolor
@@ -41,9 +41,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "inp", type=str, nargs="*",
         help="Input file with appropreate format")
-    parser.add_argument(
-        "--loc", type=str, default="371", 
-        help="Observation location (MPC code)")
     parser.add_argument(
         "--mp", action='store_true',
         help='Save phase angle in the output for minor planet')
@@ -344,7 +341,7 @@ if __name__ == "__main__":
                 # Obtain phase angle with object name
                 # Use the first time
                 ut = df_res.at[0, "utc"]
-                alpha, phi = utc2alphaphi(args.obj, ut, args.loc)
+                alpha, phi = utc2alphaphi(args.obj, ut, loc_Nayuta)
                 alpha_list.append(alpha)
                 phi_list.append(phi)
 

@@ -8,6 +8,10 @@ xo yo xe ye fits
 273 185 239 67 msi221221_805278.fits
 273 183 239 65 msi221221_805279.fits
 .
+
+The position angle of HWP is saved as HWPANGLE.
+
+
 """
 import os
 import numpy as np
@@ -16,7 +20,7 @@ from argparse import ArgumentParser as ap
 import sep
 import astropy.io.fits as fits
 
-from polana.util import utc2alphaphi, remove_bg_2d
+from polana.util import utc2alphaphi, remove_bg_2d, loc_Kanata
 from polana.util_pol import (
     polana_4angle, cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta)
 from polana.visualization import mycolor
@@ -31,10 +35,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "inp", type=str, nargs="*",
         help="Input file with certain format")
-    # TODO:update
-    parser.add_argument(
-        "--loc", type=str, default="371",
-        help="Observation location (MPC code)")
     parser.add_argument(
         "--mp", action='store_true',
         help='Save phase angle in the output for minor planet')
@@ -84,9 +84,14 @@ if __name__ == "__main__":
     fitsdir = args.fitsdir
     radius = args.radius
     band = args.band
+    # Use around width from (xo0, yo0) and (xe0, ye0)
+    wi = args.width/2.0
+    assert wi >= radius*1.5, "Width should be larger than 1.5 radius."
+
     inst = "HONIR"
     print(f"  Aperture radius {radius} pix")
     print(f"  filter {band}-band")
+
     
     # in sec
     key_texp = "EXPTIME"
@@ -96,13 +101,16 @@ if __name__ == "__main__":
     key_ang = "HWPANGLE"
     # Inverse gain e/ADU
     key_gain = "GAIN"
-    # TODO: update
+    # TODO: check
+
+    key_insrot = "CROT-STR"
     # PA of Cs rotator [deg] at exp start (Tel Log)
     # "at exposure starting time"
-    key_insrot = "CROT-STR"
-    # PA of Ns1 rotator [deg] at exp start (Tel Log)
-    # "at exposure starting time"
-    key_instpa = "NROT-STR"
+    # HONIR is on Cs focus, not Ns focus
+
+    # ??
+    key_instpa = None
+    instpa = 0
     
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
@@ -137,7 +145,7 @@ if __name__ == "__main__":
                 # Obtain rotator angle (INSROT) 
                 # and position angle of the instrument (INSTPA)
                 insrot = hdr[key_insrot]
-                instpa = hdr[key_instpa]
+                instpa = 0
 
                 # Read 2-d image
                 img = src.data
@@ -154,8 +162,6 @@ if __name__ == "__main__":
                 xe0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xe"]
                 ye0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "ye"]
 
-                # Use around width from (xo0, yo0) and (xe0, ye0)
-                wi = args.width/2.0
 
                 xmin_e, xmax_e = xe0 - wi - 1, xe0 + wi
                 ymin_e, ymax_e = ye0 - wi - 1, ye0 + wi
@@ -192,6 +198,7 @@ if __name__ == "__main__":
                     bgerr_e = np.round(bg_info_e["rms"], 2)
                     bgerr_o = np.round(bg_info_o["rms"], 2)
 
+
                 #print("")
                 #print(f"Subtracted Mean: {np.mean(img)}")
                 #print(f"Subtracted Median: {np.median(img)}")
@@ -210,8 +217,10 @@ if __name__ == "__main__":
                 # 5-sigma detection
                 dth     = 3
                 minarea = 10
-                objects_e = sep.extract(img_e, dth, err=bgerr_e, minarea=minarea, mask=None)
-                objects_o = sep.extract(img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
+                objects_e = sep.extract(
+                    img_e, dth, err=bgerr_e, minarea=minarea, mask=None)
+                objects_o = sep.extract(
+                    img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
                 N_obj_e   = len(objects_e)
                 N_obj_o   = len(objects_o)
                 #print("Objects in e")
@@ -351,7 +360,7 @@ if __name__ == "__main__":
                 # Obtain phase angle with object name
                 # Use the first time
                 ut = df_res.at[0, "utc"]
-                alpha, phi = utc2alphaphi(args.obj, ut, args.loc)
+                alpha, phi = utc2alphaphi(args.obj, ut, loc_Kanata)
                 alpha_list.append(alpha)
                 phi_list.append(phi)
 
