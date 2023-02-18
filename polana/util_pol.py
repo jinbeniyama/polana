@@ -218,7 +218,7 @@ def cor_poleff(
 def cor_instpol(
     df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
     key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="uerr_cor", key_insrot="insrot"):
+    key_uerr_cor="uerr_cor", key_insrot1="insrot1", key_insrot2="insrot2"):
     """
     Do correction about instrument polarization.
 
@@ -234,8 +234,10 @@ def cor_instpol(
         keywords for original q, u, and their errors
     key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
         keywords for corrected q, u, and their errors
-    key_insrot : str
-        keyword for angle of instrument rotator
+    key_insrot1 : str
+        keyword for angle of instrument rotator at 0 and 45 deg
+    key_insrot2 : str
+        keyword for angle of instrument rotator at 22.5 and 67.5 deg
 
     Return
     ------
@@ -291,14 +293,16 @@ def cor_instpol(
             assert False, "No data."
  
     # In radian
-    insrot    = np.deg2rad(df[key_insrot])
-    insroterr = 0
+    insrot1    = np.deg2rad(df[key_insrot1])
+    insrot1err = 0
+    insrot2    = np.deg2rad(df[key_insrot2])
+    insrot2err = 0
     
     df[key_q_cor] =  (
-        df[key_q] - (np.cos(2*insrot)*qinst - np.sin(2*insrot)*uinst)
+        df[key_q] - (np.cos(2*insrot1)*qinst - np.sin(2*insrot2)*uinst)
         )
     df[key_u_cor] =  (
-        df[key_u] - (np.sin(2*insrot)*qinst + np.cos(2*insrot)*uinst)
+        df[key_u] - (np.sin(2*insrot1)*qinst + np.cos(2*insrot2)*uinst)
         )
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
@@ -395,11 +399,12 @@ def cor_paoffset(
             theta_off    = 36.8
             theta_offerr = 0.13
     
-    # TODO: check
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
+    # TODO: check
     thetarot    = theta_off - df[key_instpa]
+    thetarot    = theta_off
     instpaerr = 0
     thetaroterr = np.sqrt(
         theta_offerr**2 + instpaerr**2
