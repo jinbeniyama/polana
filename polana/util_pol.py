@@ -321,7 +321,7 @@ def cor_instpol(
 def cor_paoffset(
     df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
     key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="uerr_cor", key_instpa="instpa"):
+    key_uerr_cor="uerr_cor"):
     """
     Do correction about position angle offset.
 
@@ -337,8 +337,6 @@ def cor_paoffset(
         keywords for original q, u, and their errors
     key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
         keywords for corrected q, u, and their errors
-    key_instpa : str
-        keyword for position angle of instrument
 
     Return
     ------
@@ -399,13 +397,15 @@ def cor_paoffset(
             theta_off    = 36.8
             theta_offerr = 0.13
     
+    # TODO: check
+    # Needless here? Necessary only to determine the coefficients above? 
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
-    # TODO: check
-    thetarot    = theta_off - df[key_instpa]
+    # thetarot    = theta_off - df[key_instpa]
+    # instpaerr = 0
+
     thetarot    = theta_off
-    instpaerr = 0
     thetaroterr = np.sqrt(
         theta_offerr**2 + instpaerr**2
         )
