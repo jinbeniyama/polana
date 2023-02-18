@@ -28,7 +28,8 @@ import astropy.io.fits as fits
 
 from polana.util import utc2alphaphi, remove_bg_2d, loc_Nayuta
 from polana.util_pol import (
-    polana_4angle, cor_poleff, cor_instpol, cor_paoffset, calc_Ptheta)
+    polana_4angle, cor_poleff, cor_instpol, cor_paoffset,
+    calc_Ptheta, projectP2scaplane)
 from polana.visualization import mycolor
 
 
@@ -112,6 +113,11 @@ if __name__ == "__main__":
     alpha_list, phi_list, P_list, Perr_list = [], [], [], []
     theta_list, thetaerr_list     = [], []
     insrot_list, instpa_list      = [], []
+    utc000_list, utc450_list      = [], []
+    utc225_list, utc675_list      = [], []
+    fi000_list, fi450_list        = [], []
+    fi225_list, fi675_list        = [], []
+
     for x in args.inp:
         # Read input files
         df_in = pd.read_csv(x, sep=" ")
@@ -305,7 +311,8 @@ if __name__ == "__main__":
                     f"{flux:.2f}, {fluxerr:.2f}, {flux/fluxerr:.1f}"
                     )
 
-                # Assume e (rot X)-> o (rot X)-> e (rot Y)-> o (rot Y) ...
+                # Assume order of input fits as 
+                # e (rot X)-> o (rot X)-> e (rot Y)-> o (rot Y) ...
                 if o_or_e == "e":
                     # Rotation angle 0, 22.5 deg (22.5 deg -> 2250), ...
                     ang = hdr[key_ang]
@@ -313,6 +320,8 @@ if __name__ == "__main__":
                     date = hdr[key_date]
                     ut = hdr[key_ut]
                     info["utc"] = f"{date}T{ut}"
+                    # Redister fitsname of ordinary
+                    info["fits"] = fi
                 
                 if o_or_e == "o":
                     df_res = pd.DataFrame(info.values(), index=info.keys()).T
@@ -337,6 +346,26 @@ if __name__ == "__main__":
             insrot_list.append(insrot)
             instpa_list.append(instpa)
 
+            # UTC
+            utc000 = df_res[df_res["angle"]=="0000"].utc.values.tolist()[0]
+            utc450 = df_res[df_res["angle"]=="0450"].utc.values.tolist()[0]
+            utc225 = df_res[df_res["angle"]=="0225"].utc.values.tolist()[0]
+            utc675 = df_res[df_res["angle"]=="0675"].utc.values.tolist()[0]
+            utc000_list.append(utc000)
+            utc450_list.append(utc450)
+            utc225_list.append(utc225)
+            utc675_list.append(utc675)
+
+            # Fits
+            fi000 = df_res[df_res["angle"]=="0000"].fits.values.tolist()[0]
+            fi450 = df_res[df_res["angle"]=="0450"].fits.values.tolist()[0]
+            fi225 = df_res[df_res["angle"]=="0225"].fits.values.tolist()[0]
+            fi675 = df_res[df_res["angle"]=="0675"].fits.values.tolist()[0]
+            fi000_list.append(fi000)
+            fi450_list.append(fi450)
+            fi225_list.append(fi225)
+            fi675_list.append(fi675)
+
             if args.mp:
                 # Obtain phase angle with object name
                 # Use the first time
@@ -358,6 +387,14 @@ if __name__ == "__main__":
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
                 alpha=alpha_list, phi=phi_list,
+                utc000 = utc000_list, 
+                utc450 = utc450_list, 
+                utc225 = utc225_list, 
+                utc675 = utc675_list, 
+                fi000 = fi000_list, 
+                fi450 = fi450_list, 
+                fi225 = fi225_list, 
+                fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
@@ -367,6 +404,14 @@ if __name__ == "__main__":
         else:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=["WFGS2"]*N, band=[band]*N,
+                utc000 = utc000_list, 
+                utc450 = utc450_list, 
+                utc225 = utc225_list, 
+                utc675 = utc675_list, 
+                fi000 = fi000_list, 
+                fi450 = fi450_list, 
+                fi225 = fi225_list, 
+                fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
@@ -388,5 +433,9 @@ if __name__ == "__main__":
             df = calc_Ptheta(
                 df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
+            if args.mp:
+                df = projectP2scaplane(
+                    df, "Pr", "Prerr", "thetar", "thetarerr", 
+                    "P_cor2", "Perr_cor2", "theta_cor2", "thetaerr_cor2", "phi")
 
         df.to_csv(out, sep=" ", index=False)
