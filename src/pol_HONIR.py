@@ -1,19 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Do photometry for images obtained with HONIR.
+Do photometry for images obtained with Kanata/HONIR.
+Pixel scale is 0.294 arcsec/pix. (Akitaya+2014, Proc. of SPIE)
+
+Both ordainary and Extra-ordinary sources exist in a single fits.
 The format of input file is as follows:
-# TODO: Update
 xo yo xe ye fits
-273 185 239 67 msi221221_805278.fits
-273 183 239 65 msi221221_805279.fits
+88 267 248 271 HN0322604opt00_bt_bs_fl_clip.fits
+86 269 248 271 HN0322605opt00_bt_bs_fl_clip.fits
 .
 
-The position angle of HWP is saved as HWPANGLE.
+The position angle of HWP is saved as 'HWPANGLE'.
+HWPANGLE=                   0. / Position angle of half-wave plate (wh18)
+The position angle of instumental rotator is saved as 
+'CROT-STR' and 'CROT-END'.
+CROT-STR=              56.7131 / PA of Cs rotator [deg] at exp start (Tel Log)
+CROT-END=              57.3702 / PA of Cs rotator [deg] at exp start (Tel Log)
 
 
 Note:
-With --mp option, phase angle and position angle of the scattering plane
+1. theta and theta error are in radians.
+2. With --mp option, phase angle and position angle of the scattering plane
 can be obtained. Pr and Ptheta are calculated.
 But those calculations need to be done using the same aspect data in the 
 table of the paper.
@@ -108,13 +116,12 @@ if __name__ == "__main__":
     # Inverse gain e/ADU
     key_gain = "GAIN"
     # TODO: check
+    
+    # Position angle of Instumental rotator
+    key_insrot0 = "CROT-STR"
+    key_insrot1 = "CROT-END"
 
-    key_insrot = "CROT-STR"
-    # PA of Cs rotator [deg] at exp start (Tel Log)
-    # "at exposure starting time"
-    # HONIR is on Cs focus, not Ns focus
-
-    # ??
+    # useless ? 
     key_instpa = None
     instpa = 0
     
@@ -154,10 +161,11 @@ if __name__ == "__main__":
                 # ex) GAIN    =                2.690 / Detecctor gain [electron/ADU]
                 gain = hdr[key_gain]
 
-                # Obtain rotator angle (INSROT) 
-                # and position angle of the instrument (INSTPA)
-                insrot = hdr[key_insrot]
-                instpa = 0
+                # Obtain position angle of instument
+                insrot0 = hdr[key_insrot0]
+                insrot1 = hdr[key_insrot1]
+                # Average
+                insrot = (insrot0 + instor1)*0.5
 
                 # Read 2-d image
                 img = src.data
@@ -344,6 +352,8 @@ if __name__ == "__main__":
                 info[f"flux_e"]    = flux_e
                 info[f"fluxerr_e"] = fluxerr_e
                 info["angle"] = f"{int(ang*10):04d}"
+                # Average (start and end) pa of instument
+                info["insrot"] = insrot
                 date = hdr[key_date]
                 ut = hdr[key_ut]
                 info["utc"] = f"{date}T{ut}"
@@ -366,8 +376,19 @@ if __name__ == "__main__":
             Perr_list.append(Perr)
             theta_list.append(theta)
             thetaerr_list.append(thetaerr)
-            insrot_list.append(insrot)
-            instpa_list.append(instpa)
+            
+            # Position angle of instumental rotator 
+            # 1. theta1 = average of instpa at 0 and 45 
+            insrot000 = df_res[df_res["angle"]=="0000"].insrot.values.tolist()[0]
+            insrot450 = df_res[df_res["angle"]=="0450"].insrot.values.tolist()[0]
+            insrot1   = (insrot000 + insrot450)*0.5
+            insrot1_list.append(insrot1)
+            # 2. theta2 = average of instpa at 225 and 675
+            insrot225 = df_res[df_res["angle"]=="0225"].insrot.values.tolist()[0]
+            insrot675 = df_res[df_res["angle"]=="0675"].insrot.values.tolist()[0]
+            insrot2   = (insrot225 + insrot675)*0.5
+            insrot2_list.append(insrot2)
+
             texp_list.append(texp)
 
             # UTC
@@ -389,7 +410,8 @@ if __name__ == "__main__":
             fi450_list.append(fi450)
             fi225_list.append(fi225)
             fi675_list.append(fi675)
-
+            
+            # Delete in the future.
             if args.mp:
                 # Obtain phase angle with object name
                 # Use the first time
@@ -425,7 +447,8 @@ if __name__ == "__main__":
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list,
                 theta=theta_list, thetaerr=thetaerr_list,
-                insrot=insrot_list, instpa=instpa_list,
+                insrot1=insrot1_list, 
+                insrot2=insrot2_list, 
                 ))
         else:
             df = pd.DataFrame(dict(
@@ -443,7 +466,8 @@ if __name__ == "__main__":
                 q=q_list, qerr=qerr_list,
                 P=P_list, Perr=Perr_list, 
                 theta=theta_list, thetaerr=thetaerr_list,
-                insrot=insrot_list, instpa=instpa_list,
+                insrot1=insrot1_list, 
+                insrot2=insrot2_list, 
             ))
 
         if args.pp:
@@ -453,10 +477,10 @@ if __name__ == "__main__":
                 "qerr_cor0", "uerr_cor0")
             df = cor_instpol(
                 df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
-                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot")
+                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot1", "insrot2")
             df = cor_paoffset(
                 df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
-                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
             df = calc_Ptheta(
                 df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
