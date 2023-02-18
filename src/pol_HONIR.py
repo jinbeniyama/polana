@@ -130,7 +130,7 @@ if __name__ == "__main__":
     alpha_list, phi_list, P_list, Perr_list = [], [], [], []
     texp_list = []
     theta_list, thetaerr_list     = [], []
-    insrot_list, instpa_list      = [], []
+    insrot1_list, insrot2_list    = [], []
     utc000_list, utc450_list      = [], []
     utc225_list, utc675_list      = [], []
     fi000_list, fi450_list        = [], []
@@ -165,7 +165,7 @@ if __name__ == "__main__":
                 insrot0 = hdr[key_insrot0]
                 insrot1 = hdr[key_insrot1]
                 # Average
-                insrot = (insrot0 + instor1)*0.5
+                insrot = (insrot0 + insrot1)*0.5
 
                 # Read 2-d image
                 img = src.data
@@ -434,7 +434,7 @@ if __name__ == "__main__":
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
                 alpha=alpha_list, phi=phi_list,
-                texp=exp_list,
+                texp=texp_list,
                 utc000 = utc000_list, 
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
@@ -453,7 +453,7 @@ if __name__ == "__main__":
         else:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
-                texp=exp_list,
+                texp=texp_list,
                 utc000 = utc000_list, 
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
