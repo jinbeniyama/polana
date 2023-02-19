@@ -27,16 +27,54 @@ def projectP2scaplane(
     # TODO:update 
     # Assume phi is almost the same at the night (=df)
     # In degree
+    # The domain of definition of phi is between 0 < phi < 360.
     phi = np.mean(df[key_phi])
+
+
+    # 2023-02-19 ==============================================================
+    #    # 0 < phi < 90
+    #    if phi < 90:
+    #        pi = df[key_phi] + 90
+    #    # 90 < phi < 180
+    #    elif phi < 180:
+    #        pi = df[key_phi] - 90
+    #    # 180 < phi < 270
+    #    elif phi < 270:
+    #        pi = df[key_phi] - 90
+    #    # 270 < phi < 360
+    #    else:
+    #        pi = df[key_phi] - 270
+
+    #    # TODO:check
+    #    # Range 0 < theta < pi/2.0 ??
+
+    #    # In radian
+    #    # theta_r is angle between normal to the scattering plane and position angle of polarization
+
+    #    # OK for Nayuta
+    #    #df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    #    #df[key_thetar] = np.mod(df[key_thetar], np.pi/2.0)
+
+    #    theta_deg = np.rad2deg(df[key_theta])
+    #    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    #    thetar_deg = np.rad2deg(df[key_thetar])
+    #    print(f"theta, phi, pi, theta_r = {theta_deg:.1f}, {phi:.1f}, {pi:.1f}, {thetar_deg:.1f}")
+    #    df[key_thetar] = np.mod(df[key_thetar], np.pi)
+
+    #    df[key_thetarerr] = df[key_thetaerr]
+    #    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+    # 2023-02-19 ==============================================================
+
+
     if phi + 90 < 180:
-        pi = df[key_phi] + 90
+        pi = phi + 90
     else:
-        pi = df[key_phi] - 90
-    # In radian
+        pi = phi - 90
     df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
     df[key_thetarerr] = df[key_thetaerr]
 
-    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+
     # TODO: check
     # Most previous studies 
     # (De Luise+2007, Kuroda+2018, 2021, Geem+2022a, Kiselev+2022)
@@ -132,24 +170,7 @@ def polana_4angle(df):
         4/(1+Ru**4)*Ruerr**2
         )
 
-    # Calculate P and Perr (nothing but initial guess)
-    P = np.sqrt(
-        q**2 + u**2
-        )
-    Perr = np.sqrt(
-        q**2*qerr**2 + u**2*uerr**2
-        )/P
-
-    # Calculate theta (osition angle relative to celestial North pole) 
-    # and thetaerr in radian
-    # arctan2(u, q) returns arctan(u/q) considering from Q1 to Q4
-    theta = 0.5*np.arctan2(u, q)
-    thetaerr = 0.5*Perr/P
-    # Why slightly different
-    # thetaerr = np.sqrt(
-    #    0.25/(1+(u/q)**2)**2*((uerr/q)**2 + (u*qerr/q**2)**2)    
-    #    )
-    return u, uerr, q, qerr, P, Perr, theta, thetaerr
+    return u, uerr, q, qerr
 
 
 def cor_poleff(
@@ -476,8 +497,17 @@ def calc_Ptheta(
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
 
+ 
+    # 2023-02-19 =============================================================
+    # Calculate theta (osition angle relative to celestial North pole) 
+    # and thetaerr in radian
+    # arctan2(u, q) returns arctan(u/q) considering from Q1 to Q4
+    theta = 0.5*np.arctan2(u, q)
+    assert 0 < theta < 2*pi,  "Something wrong happened."
+    # 2023-02-19 =============================================================
 
     return df
+
 
 
 def check_oe_dipol2(x0, x1, y0, y1, band):
