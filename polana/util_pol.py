@@ -403,8 +403,8 @@ def cor_paoffset(
     # Thus we use theta_off = -3.38 for MSI.
     
     # temporally
-    df[key_q] = -0.01045352
-    df[key_u] = -0.04421329
+    #df[key_q] = -0.01045352
+    #df[key_u] = -0.04421329
 
     # Check the sign carefully !!!
     if inst == "MSI":
@@ -440,19 +440,22 @@ def cor_paoffset(
             theta_off    = 36.8
             theta_offerr = 0.13
     
-    # TODO: check
-    # Needless here? Necessary only to determine the coefficients above? 
+    # TODO: Why this INSTPA is needed.
+    #       I think if INSTPA is fixed and always the same, 
+    #       the INSTPA is cancelled out...
+    #       But both Ishiguro+2017 and MSI manual calculate 
+    #       theta_rot with theta_off and INSTPA...
+
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
     # The sign is sooooooo important.
-    thetarot    = theta_off + df[key_instpa]
-    instpaerr = 0
     
     # In ishiguro+2017 (I17) and MSI manual,
     # thetarot_I17 = theta_off_I17 - INSTPA (-0.52).
-    # Here, the defitition of theta_off is different. 
-    # (theta_off_here = -theta_off_I17)
+    # Here, the defitition of theta_off is different.
+    # (i.e., theta_off_here = -theta_off_I17)
+    # The direction of the rotation is inverse.
     # Thus, 
     # theta_rot_here = -theta_rot_I17
     #                = -(theta_off_I17 - INSTPA)
@@ -460,11 +463,15 @@ def cor_paoffset(
     thetaroterr = np.sqrt(
         theta_offerr**2 + instpaerr**2
         )
+    thetarot    = theta_off + df[key_instpa]
+    instpaerr = 0
 
     # In radian
     thetarot    = np.deg2rad(thetarot)
     thetaroterr = np.deg2rad(thetaroterr)
     
+    # The signs are different from those in Ishiguro+2017.
+    # This is due to the difference of the direction of the rotation.
     df[key_q_cor] =  (
         np.cos(2*thetarot)*df[key_q] - np.sin(2*thetarot)*df[key_u]
         )
