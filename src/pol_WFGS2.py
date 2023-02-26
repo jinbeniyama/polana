@@ -28,6 +28,8 @@ table of the paper.
 3. Typical postion angle of instrument saved as INST-PA (fixed value) is 
 necessary only when determination of coefficients for pa offset correction?
 INST-PA =                  0.0 / Approx PA of instrument (deg)
+Anyway, INSTPA can be ignored in this script because INSTPA=0 for WFGS2 data,
+at least obtained in December 2022.
 """
 import os
 import numpy as np
@@ -120,9 +122,8 @@ if __name__ == "__main__":
     key_instpa = "INST-PA"
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
-    alpha_list, phi_list, P_list, Perr_list = [], [], [], []
+    alpha_list, phi_list = [], []
     texp_list = []
-    theta_list, thetaerr_list     = [], []
     insrot1_list, insrot2_list    = [], []
     utc000_list, utc450_list      = [], []
     utc225_list, utc675_list      = [], []
@@ -343,25 +344,19 @@ if __name__ == "__main__":
             df_res = df_res.reset_index()
         
             # Calculate linear polarization degree P
-            u, uerr, q, qerr, P, Perr, theta, thetaerr = polana_4angle(df_res)
-            print(f"  Polarization degree P = {P:.3f}+-{Perr:.3f}")
-            print(f"  Position              = {theta:.3f}+-{thetaerr:.3f}")
+            u, uerr, q, qerr  = polana_4angle(df_res, inst)
             u_list.append(u)
             uerr_list.append(uerr)
             q_list.append(q)
             qerr_list.append(qerr)
-            P_list.append(P)
-            Perr_list.append(Perr)
-            theta_list.append(theta)
-            thetaerr_list.append(thetaerr)
 
             # Position angle of instumental rotator 
-            # 1. theta1 = average of instpa at 0 and 45 
+            # 1. theta1 is average PA of instrument rotator at 0 and 45 
             insrot000 = df_res[df_res["angle"]=="0000"].insrot.values.tolist()[0]
             insrot450 = df_res[df_res["angle"]=="0450"].insrot.values.tolist()[0]
             insrot1   = (insrot000 + insrot450)*0.5
             insrot1_list.append(insrot1)
-            # 2. theta2 = average of instpa at 225 and 675
+            # 2. theta2 is average PA of instrument rotator at 225 and 675 
             insrot225 = df_res[df_res["angle"]=="0225"].insrot.values.tolist()[0]
             insrot675 = df_res[df_res["angle"]=="0675"].insrot.values.tolist()[0]
             insrot2   = (insrot225 + insrot675)*0.5
@@ -405,7 +400,7 @@ if __name__ == "__main__":
             out = "polres_WFGS2.txt"
         out = os.path.join(outdir, out)
 
-        N = len(P_list)
+        N = len(u_list)
         if args.mp:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
@@ -421,8 +416,6 @@ if __name__ == "__main__":
                 fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
-                P=P_list, Perr=Perr_list,
-                theta=theta_list, thetaerr=thetaerr_list,
                 insrot1=insrot1_list, 
                 insrot2=insrot2_list, 
                 ))
@@ -440,14 +433,15 @@ if __name__ == "__main__":
                 fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
-                P=P_list, Perr=Perr_list, 
-                theta=theta_list, thetaerr=thetaerr_list,
                 insrot1=insrot1_list, 
                 insrot2=insrot2_list, 
             ))
+
+        # Add only for post processes
+        df["instpa"] = 0.
         
         if args.pp:
-            # Post processes
+            # Post processes (pp)
             df = cor_poleff(
                 df, inst, band, "q", "u", "qerr", "uerr", "q_cor0", "u_cor0", 
                 "qerr_cor0", "uerr_cor0")
@@ -456,7 +450,7 @@ if __name__ == "__main__":
                 "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot1", "insrot2")
             df = cor_paoffset(
                 df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
-                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
+                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
             df = calc_Ptheta(
                 df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
