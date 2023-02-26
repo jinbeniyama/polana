@@ -32,47 +32,51 @@ def projectP2scaplane(
 
 
     # 2023-02-19 ==============================================================
-    #    # 0 < phi < 90
-    #    if phi < 90:
-    #        pi = df[key_phi] + 90
-    #    # 90 < phi < 180
-    #    elif phi < 180:
-    #        pi = df[key_phi] - 90
-    #    # 180 < phi < 270
-    #    elif phi < 270:
-    #        pi = df[key_phi] - 90
-    #    # 270 < phi < 360
-    #    else:
-    #        pi = df[key_phi] - 270
+    # 0 < phi < 90
+    if phi < 90:
+        pi = df[key_phi] + 90
+    # 90 < phi < 180
+    elif phi < 180:
+        pi = df[key_phi] - 90
+    # 180 < phi < 270
+    elif phi < 270:
+        pi = df[key_phi] - 90
+    # 270 < phi < 360
+    else:
+        pi = df[key_phi] - 270
 
-    #    # TODO:check
-    #    # Range 0 < theta < pi/2.0 ??
+    # TODO:check
+    # Range 0 < theta < pi/2.0 ??
 
-    #    # In radian
-    #    # theta_r is angle between normal to the scattering plane and position angle of polarization
+    # In radian
+    # theta_r is angle between normal to the scattering plane and position angle of polarization
 
-    #    # OK for Nayuta
-    #    #df[key_thetar] = df[key_theta] - np.deg2rad(pi)
-    #    #df[key_thetar] = np.mod(df[key_thetar], np.pi/2.0)
+    # OK for Nayuta
+    #df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    #df[key_thetar] = np.mod(df[key_thetar], np.pi/2.0)
 
-    #    theta_deg = np.rad2deg(df[key_theta])
-    #    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
-    #    thetar_deg = np.rad2deg(df[key_thetar])
-    #    print(f"theta, phi, pi, theta_r = {theta_deg:.1f}, {phi:.1f}, {pi:.1f}, {thetar_deg:.1f}")
-    #    df[key_thetar] = np.mod(df[key_thetar], np.pi)
+    theta_deg = np.rad2deg(df[key_theta])
+    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    thetar_deg = np.rad2deg(df[key_thetar])
+    try:
+        print(f"theta, phi, pi, theta_r = {theta_deg:.1f}, {phi:.1f}, {pi:.1f}, {thetar_deg:.1f}")
+    except:
+        print(f"theta, phi, pi, theta_r = {theta_deg}, {phi}, {pi}, {thetar_deg}")
+    #df[key_thetar] = np.mod(df[key_thetar], np.pi/)
 
-    #    df[key_thetarerr] = df[key_thetaerr]
-    #    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+    df[key_thetarerr] = df[key_thetaerr]
+    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
     # 2023-02-19 ==============================================================
 
-
-    if phi + 90 < 180:
-        pi = phi + 90
-    else:
-        pi = phi - 90
-    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
-    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
-    df[key_thetarerr] = df[key_thetaerr]
+    # Geem+2022b ==============================================================
+    # if phi + 90 < 180:
+    #     pi = phi + 90
+    # else:
+    #     pi = phi - 90
+    # df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    # df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+    # df[key_thetarerr] = df[key_thetaerr]
+    # Geem+2022b ==============================================================
 
 
     # TODO: check
@@ -320,19 +324,19 @@ def cor_instpol(
     insrot2err = 0
     
     df[key_q_cor] =  (
-        df[key_q] - (np.cos(2*insrot1)*qinst - np.sin(2*insrot2)*uinst)
+        df[key_q] - (np.cos(2*insrot1)*qinst - np.sin(2*insrot1)*uinst)
         )
     df[key_u_cor] =  (
-        df[key_u] - (np.sin(2*insrot1)*qinst + np.cos(2*insrot2)*uinst)
+        df[key_u] - (np.sin(2*insrot2)*qinst + np.cos(2*insrot2)*uinst)
         )
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
         + (np.cos(2*insrot1)*qinsterr)**2 
-        + (np.sin(2*insrot2)*uinsterr)**2 
+        + (np.sin(2*insrot1)*uinsterr)**2 
         )
     df[key_uerr_cor] = np.sqrt(
         df[key_uerr]**2 
-        + (np.sin(2*insrot1)*qinsterr)**2 
+        + (np.sin(2*insrot2)*qinsterr)**2 
         + (np.cos(2*insrot2)*uinsterr)**2 
         )
 
@@ -486,9 +490,10 @@ def calc_Ptheta(
     # By default, domain of definition of arctan2 is from -pi to pi.
     # But 
     #   the domain of definition of position angle theta is from 0 to pi,
-    #   and that of arctan(U/Q) is from 0 to 2 pi.
+    #   and that of arctan(U/Q) is also from 0 to 2 pi.
 
-    # TODO:update Assume all signs of u are the same
+    # Assume all signs of u are the same
+    # TODO:update 
     mean_arctan2 = np.mean(np.arctan2(df[key_u], df[key_q]))
     if mean_arctan2 > 0:
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
@@ -496,15 +501,6 @@ def calc_Ptheta(
         # Convert the domain of definition "from -pi to 0" to "from 0 to pi"
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
-
- 
-    # 2023-02-19 =============================================================
-    # Calculate theta (osition angle relative to celestial North pole) 
-    # and thetaerr in radian
-    # arctan2(u, q) returns arctan(u/q) considering from Q1 to Q4
-    theta = 0.5*np.arctan2(u, q)
-    assert 0 < theta < 2*pi,  "Something wrong happened."
-    # 2023-02-19 =============================================================
 
     return df
 
