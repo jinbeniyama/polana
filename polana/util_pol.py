@@ -91,15 +91,19 @@ def projectP2scaplane(
     return df
 
 
-def polana_4angle(df):
+def polana_4angle(df, inst):
     """
     Calculate linear polarization degree and position angle 
     with data in four angles of Half-wave plate (0000, 0225, 0450, 0675).
+    One important thing is that the definition of q and u are 
+    different instrument to instrument!
 
     Parameter
     ---------
     df : pandas.DataFrame
         input dataframe
+    inst : str
+        instrument
 
     Return
     ------
@@ -163,17 +167,22 @@ def polana_4angle(df):
         )
 
     # Calculate q and u, (q = Q/I and u = U/I)
-    # Kawakami+2021, Geem+2022, (not consistent with Ishiguro+2017, Kuroda+2018)
-    # But it is ok since we use q**2 and u**2
-    q = (1-Rq)/(1+Rq)
+
+    # Kawakami+2021, Akitaya+2014, Geem+2022
+    if inst == "WFGS2" or inst == "HONIR":
+        q = (1-Rq)/(1+Rq)
+        u = (1-Ru)/(1+Ru)
+    # Ishiguro+2017, Kuroda+2018
+    elif inst == "MSI":
+        q = (Rq-1)/(Rq+1)
+        u = (Ru-1)/(Ru+1)
+
     qerr = np.sqrt(
         4/(1+Rq**4)*Rqerr**2
         )
-    u = (1-Ru)/(1+Ru)
     uerr = np.sqrt(
         4/(1+Ru**4)*Ruerr**2
         )
-
     return u, uerr, q, qerr
 
 
@@ -329,6 +338,10 @@ def cor_instpol(
     df[key_u_cor] =  (
         df[key_u] - (np.sin(2*insrot2)*qinst + np.cos(2*insrot2)*uinst)
         )
+    print("angle in deg")
+    print(insrot1)
+    print(insrot2)
+    assert False, df[key_q]
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
         + (np.cos(2*insrot1)*qinsterr)**2 
@@ -346,7 +359,7 @@ def cor_instpol(
 def cor_paoffset(
     df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
     key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="uerr_cor"):
+    key_uerr_cor="uerr_cor", key_instpa="INSTPA"):
     """
     Do correction about position angle offset.
 
@@ -362,6 +375,8 @@ def cor_paoffset(
         keywords for original q, u, and their errors
     key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
         keywords for corrected q, u, and their errors
+    key_instpa : str
+        keywords for position angle of instrumet
 
     Return
     ------
@@ -427,10 +442,18 @@ def cor_paoffset(
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
-    # thetarot    = theta_off - df[key_instpa]
+    # The sign is sooooooo important.
+    thetarot    = theta_off + df[key_instpa]
     instpaerr = 0
-
-    thetarot    = theta_off
+    
+    # In ishiguro+2017 (I17) and MSI manual,
+    # thetarot_I17 = theta_off_I17 - INSTPA (-0.52).
+    # Here, the defitition of theta_off is different. 
+    # (theta_off_here = -theta_off_I17)
+    # Thus, 
+    # theta_rot_here = -theta_rot_I17
+    #                = -(theta_off_I17 - INSTPA)
+    #                = theta_off_here + INSTPA
     thetaroterr = np.sqrt(
         theta_offerr**2 + instpaerr**2
         )
@@ -494,6 +517,10 @@ def calc_Ptheta(
 
     # Assume all signs of u are the same
     # TODO:update 
+    print("u")
+    print(df[key_u])
+    print("q")
+    print(df[key_q])
     mean_arctan2 = np.mean(np.arctan2(df[key_u], df[key_q]))
     if mean_arctan2 > 0:
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
