@@ -1,33 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Do photometry for images obtained with MSI.
+Do photometry for images obtained with Pirka/MSI.
+Pixel scale is 0.39 arcsec/pix. (Ishiguro+2017, Astronomical Journal)
+
+Both ordainary and Extra-ordinary sources exist in a single fits.
 The format of input file is as follows:
 xo yo xe ye fits
 273 185 239 67 msi221221_805278.fits
 273 183 239 65 msi221221_805279.fits
 .
 
-Pixel scale is 0.39 arcsec/pix. (Ishiguro+2017)
-
-The position angle of HWP is saved as RET-ANG2.
+The position angle of HWP is saved as 'RET-ANG2'.
 RET-ANG2=             22.50000 / [deg] Position angle of retarder plate 2
-
-The position angle of instument due to rotator is saved as INSROT.
+The position angle of instumental rotator (not instument) is saved as INSROT.
 (at the time of exposure start)
 INSROT  =             73.25892 / [deg] Typical instrument rotator angle
-# See also
-# INR-STR =             73.32436 / [deg] Instrument rotator angle at start
-# INR-END =             73.31528 / [deg] Instrument rotator angle at end
-Typical postion angle of instrument is saved as INST-PA (fixed value).
-INST-PA =               -0.520 / [deg] Typical position angle of instrument
-
 
 Note:
-With --mp option, phase angle and position angle of the scattering plane
+1. theta and theta error are in radians.
+2. With --mp option, phase angle and position angle of the scattering plane
 can be obtained. Pr and Ptheta are calculated.
 But those calculations need to be done using the same aspect data in the 
 table of the paper.
+3. Typical postion angle of instrument saved as INST-PA (fixed value) is 
+necessary only when determination of coefficients for pa offset correction?
+INST-PA =               -0.520 / [deg] Typical position angle of instrument
 """
 import os
 import numpy as np
@@ -114,14 +112,14 @@ if __name__ == "__main__":
     key_gain = "GAIN"
     # The position angle of instument due to rotator is saved as INSROT.
     key_insrot = "INSROT"
-    # Typical postion angle of instrument is saved as INST-PA (fixed value).
+    # Typical postion angle of instrument is saved as INST-PA.
     key_instpa = "INST-PA"
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
-    alpha_list, phi_list, P_list, Perr_list = [], [], [], []
+    alpha_list, phi_list = [], []
     texp_list = []
-    theta_list, thetaerr_list     = [], []
-    insrot_list, instpa_list      = [], []
+    instpa_list = []
+    insrot1_list, insrot2_list    = [], []
     utc000_list, utc450_list      = [], []
     utc225_list, utc675_list      = [], []
     fi000_list, fi450_list        = [], []
@@ -152,9 +150,9 @@ if __name__ == "__main__":
                 # ex) GAIN    =                 1.65 / [electrons/DN] Effective AD conversion factor
                 gain = hdr[key_gain]
 
-                # Obtain rotator angle (INSROT) 
-                # and position angle of the instrument (INSTPA)
+                # Obtain position angle of insrtumental rotator (INSROT) 
                 insrot = hdr[key_insrot]
+                # Obtain position angle of insrtument (INSTPA) 
                 instpa = hdr[key_instpa]
                 
                 # Read 2-d image
@@ -282,6 +280,7 @@ if __name__ == "__main__":
                     img_e, [xe1], [ye1], r=radius, err=bgerr_e, gain=gain,
                     bkgann=bkgann)
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
+                print(f"  flux_e, fluxerr_e, SNR_e = {flux_e:.2f}, {fluxerr_e:.2f}, {flux_e/fluxerr_e:.1f}")
 
                 print(f"Ratio e/o = {flux_e/flux_o}")
                 # Do photometry ===============================================
@@ -377,6 +376,8 @@ if __name__ == "__main__":
                 info[f"flux_e"]    = flux_e
                 info[f"fluxerr_e"] = fluxerr_e
                 info["angle"] = f"{int(ang*10):04d}"
+                # pa of rotator
+                info["insrot"] = insrot
                 date = hdr[key_date]
                 ut = hdr[key_ut]
                 info["utc"] = f"{date}T{ut}"
@@ -389,21 +390,28 @@ if __name__ == "__main__":
 
         
             # Calculate linear polarization degree P
-            u, uerr, q, qerr, P, Perr, theta, thetaerr = polana_4angle(df_res)
-            print(f"  Polarization degree P = {P:.3f}+-{Perr:.3f}")
-            print(f"  Position              = {theta:.3f}+-{thetaerr:.3f}")
+            u, uerr, q, qerr  = polana_4angle(df_res)
 
             u_list.append(u)
             uerr_list.append(uerr)
             q_list.append(q)
             qerr_list.append(qerr)
-            P_list.append(P)
-            Perr_list.append(Perr)
-            theta_list.append(theta)
-            thetaerr_list.append(thetaerr)
-            insrot_list.append(insrot)
-            instpa_list.append(instpa)
+
+            # Position angle of instumental rotator 
+            # 1. theta1 = average of insrot at 0 and 45 
+            insrot000 = df_res[df_res["angle"]=="0000"].insrot.values.tolist()[0]
+            insrot450 = df_res[df_res["angle"]=="0450"].insrot.values.tolist()[0]
+            insrot1   = (insrot000 + insrot450)*0.5
+            insrot1_list.append(insrot1)
+            # 2. theta2 = average of insrot at 225 and 675
+            insrot225 = df_res[df_res["angle"]=="0225"].insrot.values.tolist()[0]
+            insrot675 = df_res[df_res["angle"]=="0675"].insrot.values.tolist()[0]
+            insrot2   = (insrot225 + insrot675)*0.5
+            insrot2_list.append(insrot2)
+
             texp_list.append(texp)
+            # Fixed value
+            instpa_list.append(instpa)
 
             # UTC
             utc000 = df_res[df_res["angle"]=="0000"].utc.values.tolist()[0]
@@ -442,12 +450,12 @@ if __name__ == "__main__":
             out = "polres_MSI.txt"
         out = os.path.join(outdir, out)
 
-        N = len(P_list)
+        N = len(u_list)
         if args.mp:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
                 alpha=alpha_list, phi=phi_list, 
-                texp=exp_list,
+                texp=texp_list,
                 utc000 = utc000_list, 
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
@@ -458,14 +466,14 @@ if __name__ == "__main__":
                 fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
-                P=P_list, Perr=Perr_list,
-                theta=theta_list, thetaerr=thetaerr_list,
-                insrot=insrot_list, instpa=instpa_list,
+                insrot1=insrot1_list, 
+                insrot2=insrot2_list, 
+                instpa=instpa_list, 
                 ))
         else:
             df = pd.DataFrame(dict(
                 obj=[args.obj]*N, inst=[inst]*N, band=[band]*N,
-                texp=exp_list,
+                texp=texp_list,
                 utc000 = utc000_list, 
                 utc450 = utc450_list, 
                 utc225 = utc225_list, 
@@ -476,9 +484,9 @@ if __name__ == "__main__":
                 fi675 = fi675_list, 
                 u=u_list, uerr=uerr_list,
                 q=q_list, qerr=qerr_list,
-                P=P_list, Perr=Perr_list, 
-                theta=theta_list, thetaerr=thetaerr_list,
-                insrot=insrot_list, instpa=instpa_list,
+                insrot1=insrot1_list, 
+                insrot2=insrot2_list, 
+                instpa=instpa_list, 
             ))
 
         if args.pp:
@@ -488,7 +496,7 @@ if __name__ == "__main__":
                 "qerr_cor0", "uerr_cor0")
             df = cor_instpol(
                 df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
-                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot")
+                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot1", "insrot2")
             df = cor_paoffset(
                 df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
