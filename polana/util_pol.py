@@ -338,10 +338,10 @@ def cor_instpol(
     df[key_u_cor] =  (
         df[key_u] - (np.sin(2*insrot2)*qinst + np.cos(2*insrot2)*uinst)
         )
-    print("angle in deg")
+
+    print("INSROT angle in deg")
     print(insrot1)
     print(insrot2)
-    assert False, df[key_q]
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
         + (np.cos(2*insrot1)*qinsterr)**2 
@@ -401,7 +401,10 @@ def cor_paoffset(
 
     # We use the same definition of theta_off with Kawakami+2021.
     # Thus we use theta_off = -3.38 for MSI.
-
+    
+    # temporally
+    df[key_q] = -0.01045352
+    df[key_u] = -0.04421329
 
     # Check the sign carefully !!!
     if inst == "MSI":
@@ -470,7 +473,7 @@ def cor_paoffset(
         )
 
     # The errors are the same (only rotation)
-    # TODO: systematic error?
+    # TODO: add systematic error?
     df[key_qerr_cor] = df[key_qerr]
     df[key_uerr_cor] = df[key_uerr]
 
@@ -522,12 +525,16 @@ def calc_Ptheta(
     print("q")
     print(df[key_q])
     mean_arctan2 = np.mean(np.arctan2(df[key_u], df[key_q]))
+    # The domain of definition of theta is 0 < theta < pi.
     if mean_arctan2 > 0:
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q])
     elif mean_arctan2 < 0:
         # Convert the domain of definition "from -pi to 0" to "from 0 to pi"
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
+
+    # Note for Excel for Microsoft users:
+    #   np.arctan2(u, q) corresponds to ATAN2(q; u).
 
     return df
 
