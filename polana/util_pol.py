@@ -288,11 +288,16 @@ def cor_instpol(
             qinsterr = 0.00033
             uinst    = 0.00337
             uinsterr = 0.00020
-            # after 2022-03
+            # after 2022-03?
             qinst    = 0.00862
             qinsterr = 0.00013
             uinst    = 0.00379
             uinsterr = 0.00013
+            # after 2022-11?
+            qinst    = 0.00584
+            qinsterr = 0.00011
+            uinst    = 0.00751
+            uinsterr = 0.00011
 
         elif band == "V":
             # 2015 Values !!
@@ -300,11 +305,16 @@ def cor_instpol(
             qinsterr = 0.00029
             uinst    = 0.00453
             uinsterr = 0.00043
-            # after 2022-03
+            # after 2022-03?
             qinst    = 0.01202
             qinsterr = 0.00013
             uinst    = 0.00530
             uinsterr = 0.00013
+            # after 2022-11?
+            qinst    = 0.00785
+            qinsterr = 0.00020
+            uinst    = 0.01077
+            uinsterr = 0.00019
 
     if inst == "WFGS2":
         # From code in Geem+2022b
@@ -389,6 +399,11 @@ def cor_paoffset(
     # The definition of theta_off is unclear, but they
     # defined it as theta_off = theta_obs - theta_lt.
     # Then theta_off = 3.38.
+    # New Note on 2023-03-20:
+    # By Jooyeon,
+    # \theta_{observation} = \theta_{Catalog} - \theta_{offset}.
+    # -> theta_off = theta_lt - theta_obs
+    # Different from Ishiguro+2017!
 
     # In Kawakami+2021, theta_off is -5.19 for WFGS2.
     # The definition of theta_off is clear. They
@@ -402,6 +417,7 @@ def cor_paoffset(
     # We use the same definition of theta_off with Kawakami+2021.
     # Thus we use theta_off = -3.38 for MSI.
     
+    
     # temporally
     #df[key_q] = -0.01045352
     #df[key_u] = -0.04421329
@@ -413,16 +429,22 @@ def cor_paoffset(
             # 2015 Values !!
             theta_off    = -3.38
             theta_offerr = 0.37
-            # After 2022-03
+            # After 2022-03?
             theta_off    = -3.54
             theta_offerr = 0.11
+            # After 2022-11?
+            theta_off    = 17.09
+            theta_offerr = 0.52
         if band == "V":
             # 2015 Values !!
             theta_off    = -3.82
             thta_offerr = 0.38
-            # After 2022-03
+            # After 2022-03?
             theta_off    = -3.84
             thtea_offerr = 0.14
+            # After 2022-11?
+            theta_off    = 20.61
+            theta_offerr = 0.26
 
     if inst == "WFGS2":
         if band == "Rc" or "R":
@@ -460,11 +482,11 @@ def cor_paoffset(
     # theta_rot_here = -theta_rot_I17
     #                = -(theta_off_I17 - INSTPA)
     #                = theta_off_here + INSTPA
+    thetarot    = theta_off + df[key_instpa]
+    instpaerr = 0
     thetaroterr = np.sqrt(
         theta_offerr**2 + instpaerr**2
         )
-    thetarot    = theta_off + df[key_instpa]
-    instpaerr = 0
 
     # In radian
     thetarot    = np.deg2rad(thetarot)
