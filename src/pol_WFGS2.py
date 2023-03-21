@@ -20,12 +20,13 @@ INSROT  =              135.583 / Typical inst rot. Angle ar exp.(degree)
 
 
 Note:
-1. theta and theta error are in radians.
-2. With --mp option, phase angle and position angle of the scattering plane
+1. The output time is mid-exposure time (already saved in header as UT-CEN).
+2. theta and theta error are in radians.
+3. With --mp option, phase angle and position angle of the scattering plane
 can be obtained. Pr and Ptheta are calculated.
 But those calculations need to be done using the same aspect data in the 
 table of the paper.
-3. Typical postion angle of instrument saved as INST-PA (fixed value) is 
+4. Typical postion angle of instrument saved as INST-PA (fixed value) is 
 necessary only when determination of coefficients for pa offset correction?
 INST-PA =                  0.0 / Approx PA of instrument (deg)
 Anyway, INSTPA can be ignored in this script because INSTPA=0 for WFGS2 data,
@@ -330,6 +331,7 @@ if __name__ == "__main__":
                     # pa of instument
                     info["insrot"] = insrot
                     date = hdr[key_date]
+                    # Already mid-time of exposure
                     ut = hdr[key_ut]
                     info["utc"] = f"{date}T{ut}"
                     # Redister fitsname of ordinary

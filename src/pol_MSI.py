@@ -18,16 +18,18 @@ The position angle of instumental rotator (not instument) is saved as INSROT.
 INSROT  =             73.25892 / [deg] Typical instrument rotator angle
 
 Note:
-1. theta and theta error are in radians.
-2. With --mp option, phase angle and position angle of the scattering plane
+1. The output time is mid-exposure time.
+2. theta and theta error are in radians.
+3. With --mp option, phase angle and position angle of the scattering plane
 can be obtained. Pr and Ptheta are calculated.
 But those calculations need to be done using the same aspect data in the 
 table of the paper.
-3. Typical postion angle of instrument saved as INST-PA (fixed value) is 
+4. Typical postion angle of instrument saved as INST-PA (fixed value) is 
 necessary only when determination of coefficients for pa offset correction?
 INST-PA =               -0.520 / [deg] Typical position angle of instrument
 """
 import os
+import datetime
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
@@ -105,6 +107,7 @@ if __name__ == "__main__":
 
     key_texp = "EXPTIME"
     key_date = "DATE-OBS"
+    # [hh:mm:ss.s] UTC at exposure start
     key_ut = "UT-STR"
     # 0, 45, 22.5, 67.5
     key_ang = "RET-ANG2"
@@ -379,8 +382,14 @@ if __name__ == "__main__":
                 # pa of rotator
                 info["insrot"] = insrot
                 date = hdr[key_date]
-                ut = hdr[key_ut]
-                info["utc"] = f"{date}T{ut}"
+                # Starting time of exposure
+                utc0 = hdr[key_ut]
+                utc0 = f"{date}T{utc0}"
+                # Convert to mid-time of exposure
+                utc0_dt = datetime.datetime.strptime(utc0, "%Y-%m-%dT%H:%M:%S.%f")
+                utcmid_dt = utc0_dt + datetime.timedelta(seconds=texp)
+                utcmid = datetime.datetime.strftime(utcmid_dt, "%Y-%m-%dT%H:%M:%S.%f")
+                info["utc"] = utcmid
                 info["fits"] = fi
                 df_res = pd.DataFrame(info.values(), index=info.keys()).T
                 df_res_list.append(df_res)
@@ -390,7 +399,7 @@ if __name__ == "__main__":
 
         
             # Calculate linear polarization degree P
-            u, uerr, q, qerr  = polana_4angle(df_res)
+            u, uerr, q, qerr  = polana_4angle(df_res, inst)
 
             u_list.append(u)
             uerr_list.append(uerr)
