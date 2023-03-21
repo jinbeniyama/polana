@@ -20,17 +20,19 @@ CROT-END=              57.3702 / PA of Cs rotator [deg] at exp start (Tel Log)
 
 
 Note:
-1. theta and theta error are in radians.
-2. With --mp option, phase angle and position angle of the scattering plane
+1. The output time is mid-exposure time.
+2. theta and theta error are in radians.
+3. With --mp option, phase angle and position angle of the scattering plane
 can be obtained. Pr and Ptheta are calculated.
 But those calculations need to be done using the same aspect data in the 
 table of the paper.
-3. Typical postion angle of instrument (INSTPA) is 
+4. Typical postion angle of instrument (INSTPA) is 
 necessary only when determination of coefficients for pa offset correction?
 Anyway, INSTPA can be ignored in this script because INSTPA=0 for HONIR data,
 at least obtained in December 2022.
 """
 import os
+import datetime
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser as ap
@@ -114,6 +116,7 @@ if __name__ == "__main__":
     # in sec
     key_texp = "EXPTIME"
     key_date = "DATE-OBS"
+    # UTC at exposure start (hh:mm:ss)
     key_ut = "UT-STR"
     # 0, 45, 22.5, 67.5
     key_ang = "HWPANGLE"
@@ -355,8 +358,14 @@ if __name__ == "__main__":
                 # Average (start and end) pa of instument
                 info["insrot"] = insrot
                 date = hdr[key_date]
-                ut = hdr[key_ut]
-                info["utc"] = f"{date}T{ut}"
+                # Starting time of exposure
+                utc0 = hdr[key_ut]
+                utc0 = f"{date}T{utc0}"
+                # Convert to mid-time of exposure
+                utc0_dt = datetime.datetime.strptime(utc0, "%Y-%m-%dT%H:%M:%S")
+                utcmid_dt = utc0_dt + datetime.timedelta(seconds=texp)
+                utcmid = datetime.datetime.strftime(utcmid_dt, "%Y-%m-%dT%H:%M:%S")
+                info["utc"] = utcmid
                 info["fits"] = fi
                 df_res = pd.DataFrame(info.values(), index=info.keys()).T
                 df_res_list.append(df_res)
