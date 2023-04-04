@@ -433,7 +433,7 @@ def cor_paoffset(
             theta_off    = -3.54
             theta_offerr = 0.11
             # After 2022-11?
-            theta_off    = 17.09
+            theta_off    = -17.09
             theta_offerr = 0.52
         if band == "V":
             # 2015 Values !!
@@ -443,7 +443,7 @@ def cor_paoffset(
             theta_off    = -3.84
             thtea_offerr = 0.14
             # After 2022-11?
-            theta_off    = 20.61
+            theta_off    = -20.61
             theta_offerr = 0.26
 
     if inst == "WFGS2":
@@ -505,6 +505,9 @@ def cor_paoffset(
     # TODO: add systematic error?
     df[key_qerr_cor] = df[key_qerr]
     df[key_uerr_cor] = df[key_uerr]
+
+    print(f"q0   , u0    = {df[key_q][0]}, {df[key_u][0]}")
+    print(f"q cor, u cor = {df[key_q_cor][0]}, {df[key_u_cor][0]}")
 
     return df
 
