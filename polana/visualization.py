@@ -3,8 +3,11 @@
 """
 Color photmetry plot functions
 """
+import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Circle
+
+from polana.util import round_error
 
 # Color
 mycolor = ["#AD002D", "#1e50a2", "#006e54", "#ffd900", 
@@ -39,13 +42,14 @@ def colmark(idx):
 
 
 def plot_obspolres(
-    ax, df, key, key_P="P", key_Perr="Perr", 
+    ax, df, key, obj, key_P="P", key_Perr="Perr", 
     key_theta="theta", key_thetaerr="thetaerr", 
     key_q="q", key_qerr="qerr", key_u="u", key_uerr="uerr",
     color="black", marker="o", ls="solid"):
     """
     Plot observational result of polarymetry.
     """
+
     # Weighted mean
     w_P = [1/x**2 for x in df[key_Perr]]
     w_theta = [1/x**2 for x in df[key_thetaerr]]
@@ -62,7 +66,6 @@ def plot_obspolres(
     # in percent 
     wmean_P_percent, wstd_Perr_percent = 100.*wmean_P, 100.*wstd_P
     P_percent, Perr_percent = round_error(wmean_P_percent, wstd_Perr_percent)
-
 
     # in degree TODO:check
     wmean_theta, wstd_theta = np.rad2deg(wmean_theta), np.rad2deg(wstd_theta)
@@ -81,7 +84,7 @@ def plot_obspolres(
         df[key_q], df[key_u], marker=marker, s=300, color=color, 
         facecolor="None", zorder=1, label=label)
 
-    # Add circle pf P=Pobs
+    # Add circle of P=Pobs
     ax.add_collection(PatchCollection(
         [Circle((0, 0), float(wmean_P))],
         color=color, ls=ls, lw=1, facecolor="None")
@@ -89,10 +92,11 @@ def plot_obspolres(
 
 
 def plot_litpolres(
-    ax, key, P, Perr, theta, thetaerr, color="black", marker="o", ls="solid"):
+    ax, key, obj, P, Perr, theta, thetaerr, color="black", marker="o", ls="solid"):
     """
     Plot observational result of polarymetry.
     """
+
     # Input theta is in degree
     label = (
         f"{obj} {key}\n" + r"(P, $\theta$) = " 
