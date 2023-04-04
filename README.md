@@ -64,7 +64,6 @@ Before polarimetry, we should check the source location in pixel coordinates
 by eye using fits viewer such as ds9 and save it as `input.txt`.
 Polarimetric parameters, q, u, P, theta, and their uncertainties, are saved in the output file.
 
-### 1. MSI 
 The 1 set consists of 4 images obtained with angles of half-wave plates at 0, 45, 22.5, and 67.5.
 The format of `input.txt` is as follows:
 (Do not think! Feel the meaning of each column.)
