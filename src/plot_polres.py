@@ -95,7 +95,7 @@ if __name__ == "__main__":
         inst = df.inst[0]
         band = df.band[0]
         
-        # 1. Correction of polarization efficiency with 'p_eff'.
+         # 1. Correction of polarization efficiency with 'p_eff'.
         df = calc_Ptheta(
             df, "P_cor0", "theta_cor0", "Perr_cor0", "thetaerr_cor0",
             "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0")

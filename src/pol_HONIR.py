@@ -106,7 +106,7 @@ if __name__ == "__main__":
     band = args.band
     # Use around width from (xo0, yo0) and (xe0, ye0)
     wi = args.width/2.0
-    assert wi >= radius*1.5, "Width should be larger than 1.5 radius."
+    assert wi >= radius*1.1, "Width should be larger than 1.1 radius."
 
     inst = "HONIR"
     print(f"  Aperture radius {radius} pix")
@@ -246,10 +246,12 @@ if __name__ == "__main__":
                     img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
                 N_obj_e   = len(objects_e)
                 N_obj_o   = len(objects_o)
-                #print("Objects in e")
-                #print(objects_e["x"])
-                #print("Objects in o")
-                #print(objects_o["x"])
+                print("x, y of objects in e")
+                print(objects_e["x"])
+                print(objects_e["y"])
+                print("x, y of objects in o")
+                print(objects_o["x"])
+                print(objects_o["y"])
                 # Soooooo important
                 assert N_obj_e == 1, "Check the image. There might be a cosmic ray?"
                 assert N_obj_o == 1, "Check the image. There might be a cosmic ray?"
