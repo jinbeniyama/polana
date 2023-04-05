@@ -183,6 +183,27 @@ def polana_4angle(df, inst):
     uerr = np.sqrt(
         4./(1+Ru)**4*Ruerr**2
         )
+    
+    #   # For test ================================================================
+    #   # The consistency was checked by J.B.
+    #   A = (
+    #       (ferr_e_0000/f_e_0000)**2 + (ferr_o_0000/f_o_0000)**2 
+    #       +
+    #       (ferr_e_0450/f_e_0450)**2 + (ferr_o_0450/f_o_0450)**2 
+    #       )
+    #   qerr2 = Rq/(Rq+1)**2 * np.sqrt(A)
+    #   B = (
+    #       (ferr_e_0225/f_e_0225)**2 + (ferr_o_0225/f_o_0225)**2 
+    #       +
+    #       (ferr_e_0675/f_e_0675)**2 + (ferr_o_0675/f_o_0675)**2 
+    #       )
+    #   uerr2 = Ru/(Ru+1)**2 * np.sqrt(B)
+    #   print(f"(MSI manual) qerr = {qerr2}")
+    #   print(f"(Self calc.) qerr = {qerr}")
+    #   print(f"(MSI manual) uerr = {uerr2}")
+    #   print(f"(Self calc.) uerr = {uerr}")
+    #   # For test ================================================================
+
     return u, uerr, q, qerr
 
 
@@ -236,8 +257,20 @@ def cor_poleff(
 
     df[key_q_cor] = df[key_q]/peff
     df[key_u_cor] = df[key_u]/peff 
-    df[key_qerr_cor] = df[key_qerr]/peff 
-    df[key_uerr_cor] = df[key_uerr]/peff 
+    
+    # Random error
+    eq1 = df[key_qerr]/peff 
+    eu1 = df[key_uerr]/peff 
+
+    # Systematic error
+    eq2 = np.abs(df[key_q])*pefferr/peff 
+    eu2 = np.abs(df[key_u])*pefferr/peff 
+    print(f"q random, systematic = {eq1}, {eq2}")
+    print(f"u random, systematic = {eu1}, {eu2}")
+
+    # Consider random errors and systematic errors
+    df[key_qerr_cor] = np.sqrt(eq1**2+eq2**2)
+    df[key_uerr_cor] = np.sqrt(eu1**2+eu2**2)
 
     return df
 
@@ -438,18 +471,18 @@ def cor_paoffset(
     
 
     # TODO: Why this INSTPA is needed.
-    #       I think if INSTPA is fixed and always the same, 
-    #       the INSTPA is cancelled out...
+    #       I think if INSTPA is fixed and always the same.
+    #       Thus the INSTPA is cancelled out...
     #       But both Ishiguro+2017 and MSI manual calculate 
     #       theta_rot with theta_off and INSTPA...
 
-    # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, 2022-12)
+    # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, not zero, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
     # For HONIR, instpa                  = 0.0 (fixed, 2022-12)
     # The sign is sooooooo important.
     
     # In ishiguro+2017 (I17) and MSI manual,
-    # thetarot_I17 = theta_off_I17 - INSTPA (-0.52).
+    # thetarot_I17 = theta_off_I17 - INSTPA (i.e., -0.52).
     # Here, the defitition of theta_off is different.
     # (i.e., theta_off_here = -theta_off_I17)
     # The direction of the rotation is inverse.
@@ -457,7 +490,7 @@ def cor_paoffset(
     # theta_rot_here = -theta_rot_I17
     #                = -(theta_off_I17 - INSTPA)
     #                = theta_off_here + INSTPA
-    thetarot    = theta_off + df[key_instpa]
+    thetarot = theta_off + df[key_instpa]
     instpaerr = 0
     thetaroterr = np.sqrt(
         theta_offerr**2 + instpaerr**2
@@ -477,12 +510,9 @@ def cor_paoffset(
         )
 
     # The errors are the same (only rotation)
-    # TODO: add systematic error?
     df[key_qerr_cor] = df[key_qerr]
     df[key_uerr_cor] = df[key_uerr]
-
-    print(f"q0   , u0    = {df[key_q][0]}, {df[key_u][0]}")
-    print(f"q cor, u cor = {df[key_q_cor][0]}, {df[key_u_cor][0]}")
+    # TODO: add systematic error?
 
     return df
 
