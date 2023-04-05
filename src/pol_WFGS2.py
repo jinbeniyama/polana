@@ -474,11 +474,4 @@ if __name__ == "__main__":
                 "qerr_sys_cor2", "uerr_sys_cor2",
                 "qerr_cor2", "uerr_cor2",
                 "instpa")
-            df = calc_Ptheta(
-                df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
-                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
-            if args.mp:
-                df = projectP2scaplane(
-                    df, "Pr", "Prerr", "thetar", "thetarerr", 
-                    "P_cor2", "Perr_cor2", "theta_cor2", "thetaerr_cor2", "phi")
         df.to_csv(out, sep=" ", index=False)
