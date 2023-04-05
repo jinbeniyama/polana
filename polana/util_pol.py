@@ -554,48 +554,42 @@ def cor_paoffset(
 
 def calc_Ptheta(
     df, 
-    key_P="P", key_theta="theta", key_Perr="Perr", key_thetaerr="thetaerr",
-    key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr"):
+    key_q="q", key_u="u", 
+    key_qerr_ran="qerr_ran", key_uerr_ran="uerr_ran",
+    key_qerr_sys="qerr_sys", key_uerr_sys="uerr_sys",
+    key_P="P", key_theta="theta", 
+    key_Perr_ran="Perr_ran", key_thetaerr_ran="thetaerr_ran",
+    key_Perr_sys="Perr_sys", key_thetaerr_sys="thetaerr_sys",
+    key_Perr="Perr", key_thetaerr="thetaerr"):
 
-    # Calculate initial P_cor and theta_cor
+    # Calculate initial P_cor
     df[key_P] = np.sqrt(
         df[key_q]**2 + df[key_u]**2
         )
-    df[key_Perr] = np.sqrt(
-        df[key_q]**2*df[key_qerr]**2 + df[key_u]**2*df[key_uerr]**2
+    # Random error
+    df[key_Perr_ran] = np.sqrt(
+        df[key_q]**2*df[key_qerr_ran]**2 + df[key_u]**2*df[key_uerr_ran]**2
         )/df[key_P]
-    
-    # Calculate thetaerr before correction of P
-    # 1. standard calculation
-    #df[key_thetaerr] = np.sqrt(
-    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
-    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
-    #    )
-    # 2. useful result
-    df[key_thetaerr] = 0.5*df[key_Perr]/df[key_P]
-    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
-
+    # Systematic error
+    df[key_Perr_sys] = np.sqrt(
+        df[key_q]**2*df[key_qerr_sys]**2 + df[key_u]**2*df[key_uerr_sys]**2
+        )/df[key_P]
     # Correct positive bias in the linear polarization degree
     for idx_row, row in df.iterrows():
-        P    = row[key_P]
-        Perr = row[key_Perr]
-        if P**2 - Perr**2 < 0:
+        P        = row[key_P]
+        Perr_ran = row[key_Perr_ran]
+        if P**2 - Perr_ran**2 < 0:
             df.at[idx_row, key_P] = 0
         else:
-            df.at[idx_row, key_P] =  np.sqrt(P**2 - Perr**2)
+            df.at[idx_row, key_P] =  np.sqrt(P**2 - Perr_ran**2)
+    # Concatenate
+    df[key_Perr] = np.sqrt(
+        df[key_Perr_ran]**2 + df[key_Perr_sys]**2)
 
-    # arctan2(y, x) returns arctan(y/x)
-    # By default, domain of definition of arctan2 is from -pi to pi.
-    # But 
-    #   the domain of definition of position angle theta is from 0 to pi,
-    #   and that of arctan(U/Q) is also from 0 to 2 pi.
 
+    # Calculate theta
     # Assume all signs of u are the same
-    # TODO:update 
-    print("u")
-    print(df[key_u])
-    print("q")
-    print(df[key_q])
+    # TODO:check
     mean_arctan2 = np.mean(np.arctan2(df[key_u], df[key_q]))
     # The domain of definition of theta is 0 < theta < pi.
     if mean_arctan2 > 0:
@@ -605,8 +599,28 @@ def calc_Ptheta(
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
 
+    # Calculate thetaerr
+    # 1. standard calculation
+    #df[key_thetaerr] = np.sqrt(
+    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
+    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
+    #    )
+    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
+    # 2. useful result
+    df[key_thetaerr_ran] = 0.5*df[key_Perr_ran]/df[key_P]
+    df[key_thetaerr_sys] = 0.5*df[key_Perr_sys]/df[key_P]
+
+    # arctan2(y, x) returns arctan(y/x)
+    # By default, domain of definition of arctan2 is from -pi to pi.
+    # But 
+    #   the domain of definition of position angle theta is from 0 to pi,
+    #   and that of arctan(U/Q) is also from 0 to 2 pi.
     # Note for Excel for Microsoft users:
     #   np.arctan2(u, q) corresponds to ATAN2(q; u).
+
+    # Concatenate
+    df[key_thetaerr] = np.sqrt(
+        df[key_thetaerr_ran]**2 + df[key_thetaerr_sys]**2)
 
     return df
 

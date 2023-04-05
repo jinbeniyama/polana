@@ -77,11 +77,8 @@ if __name__ == "__main__":
     ax.set_ylabel(f"u = U/I")
 
     # Observation (raw) =======================================================
-    df = calc_Ptheta(
-        df, "P", "theta", "Perr", "thetaerr",
-        "q", "u", "qerr", "uerr")
-    plot_obspolres(
-        ax, df, args.key_obs, obj, color=mycolor[0], marker=mymark[0], ls="dashed")
+    #plot_obspolres(
+    #    ax, df, args.key_obs, obj, color=mycolor[0], marker=mymark[0], ls="dashed")
     width = 2*np.max([
         abs(np.min(df["q"])), abs(np.max(df["q"])),
         abs(np.min(df["u"])), abs(np.max(df["u"]))
@@ -95,12 +92,18 @@ if __name__ == "__main__":
         inst = df.inst[0]
         band = df.band[0]
         
-         # 1. Correction of polarization efficiency with 'p_eff'.
+        # 1. Correction of polarization efficiency with 'p_eff'.
         df = calc_Ptheta(
-            df, "P_cor0", "theta_cor0", "Perr_cor0", "thetaerr_cor0",
-            "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0")
+            df, 
+            key_q="q_cor0", key_u="u_cor0", 
+            key_qerr_ran="qerr_ran_cor0", key_uerr_ran="uerr_ran_cor0",
+            key_qerr_sys="qerr_sys_cor0", key_uerr_sys="uerr_sys_cor0",
+            key_P="P_cor0", key_theta="theta_cor0", 
+            key_Perr_ran="Perr_ran", key_thetaerr_ran="thetaerr_ran",
+            key_Perr_sys="Perr_sys", key_thetaerr_sys="thetaerr_sys",
+            key_Perr="Perr_cor0", key_thetaerr="thetaerr_cor0")
         plot_obspolres(
-            ax, df, args.key_obs+"peff corrected",  obj,
+            ax, df, args.key_obs+"peff corrected", obj,
             key_P="P_cor0", key_Perr="Perr_cor0",
             key_theta="theta_cor0", key_thetaerr="thetaerr_cor0",
             key_q="q_cor0", key_qerr="qerr_cor0", 
@@ -109,8 +112,14 @@ if __name__ == "__main__":
 
         # 2. Correction of instrumental polarization with 'q_inst' and 'u_inst'.
         df = calc_Ptheta(
-            df, "P_cor1", "theta_cor1", "Perr_cor1", "thetaerr_cor1",
-            "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1")
+            df, 
+            key_q="q_cor1", key_u="u_cor1", 
+            key_qerr_ran="qerr_ran_cor1", key_uerr_ran="uerr_ran_cor1",
+            key_qerr_sys="qerr_sys_cor1", key_uerr_sys="uerr_sys_cor1",
+            key_P="P_cor1", key_theta="theta_cor1", 
+            key_Perr_ran="Perr_ran", key_thetaerr_ran="thetaerr_ran",
+            key_Perr_sys="Perr_sys", key_thetaerr_sys="thetaerr_sys",
+            key_Perr="Perr_cor1", key_thetaerr="thetaerr_cor1")
         plot_obspolres(
             ax, df, args.key_obs+"inst corrected", obj,
             key_P="P_cor1", key_Perr="Perr_cor1",
@@ -121,8 +130,14 @@ if __name__ == "__main__":
 
         # 3. Correction of position angle offset with 'pa_offset'.
         df = calc_Ptheta(
-            df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
-            "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
+            df, 
+            key_q="q_cor2", key_u="u_cor2", 
+            key_qerr_ran="qerr_ran_cor2", key_uerr_ran="uerr_ran_cor2",
+            key_qerr_sys="qerr_sys_cor2", key_uerr_sys="uerr_sys_cor2",
+            key_P="P_cor2", key_theta="theta_cor2", 
+            key_Perr_ran="Perr_ran", key_thetaerr_ran="thetaerr_ran",
+            key_Perr_sys="Perr_sys", key_thetaerr_sys="thetaerr_sys",
+            key_Perr="Perr_cor2", key_thetaerr="thetaerr_cor2")
         plot_obspolres(
             ax, df, args.key_obs+"paoff corrected", obj,
             key_P="P_cor2", key_Perr="Perr_cor2",
