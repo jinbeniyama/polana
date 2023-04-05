@@ -150,7 +150,7 @@ def polana_4angle(df, inst):
         1./4.*(
             (f_o_0450/(f_e_0000*f_o_0000*f_e_0450))*ferr_e_0000**2
             + ((f_e_0000*f_o_0450)/(f_e_0450*f_o_0000**3))*ferr_o_0000**2
-            + (f_o_0000/(f_e_0000*f_o_0450*f_e_0450))*ferr_o_0450**2
+            + (f_e_0000/(f_o_0000*f_o_0450*f_e_0450))*ferr_o_0450**2
             + ((f_e_0000*f_o_0450)/(f_e_0450**3*f_o_0000))*ferr_e_0450**2
             )
         )
@@ -161,27 +161,27 @@ def polana_4angle(df, inst):
         1./4.*(
             (f_o_0675/(f_e_0225*f_o_0225*f_e_0675))*ferr_e_0225**2
             + ((f_e_0225*f_o_0675)/(f_e_0675*f_o_0225**3))*ferr_o_0225**2
-            + (f_o_0225/(f_e_0225*f_o_0675*f_e_0675))*ferr_o_0675**2
+            + (f_e_0225/(f_o_0225*f_o_0675*f_e_0675))*ferr_o_0675**2
             + ((f_e_0225*f_o_0675)/(f_e_0675**3*f_o_0225))*ferr_e_0675**2
             )
         )
 
     # Calculate q and u, (q = Q/I and u = U/I)
-
-    # Kawakami+2021, Akitaya+2014, Geem+2022
+    # The definisions are sooooooo important.
+    # See Kawakami+2021, Akitaya+2014, Geem+2022.
     if inst == "WFGS2" or inst == "HONIR":
         q = (1-Rq)/(1+Rq)
         u = (1-Ru)/(1+Ru)
-    # Ishiguro+2017, Kuroda+2018
+    # See Ishiguro+2017, Kuroda+2018.
     elif inst == "MSI":
         q = (Rq-1)/(Rq+1)
         u = (Ru-1)/(Ru+1)
 
     qerr = np.sqrt(
-        4/(1+Rq**4)*Rqerr**2
+        4./(1+Rq)**4*Rqerr**2
         )
     uerr = np.sqrt(
-        4/(1+Ru**4)*Ruerr**2
+        4./(1+Ru)**4*Ruerr**2
         )
     return u, uerr, q, qerr
 
