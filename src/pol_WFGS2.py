@@ -345,7 +345,7 @@ if __name__ == "__main__":
             df_res = pd.concat(df_res_list, axis=0)
             df_res = df_res.reset_index()
         
-            # Calculate linear polarization degree P
+            # Calculate normalized Stokes parameters 
             u, uerr, q, qerr  = polana_4angle(df_res, inst)
             u_list.append(u)
             uerr_list.append(uerr)
@@ -356,11 +356,13 @@ if __name__ == "__main__":
             # 1. theta1 is average PA of instrument rotator at 0 and 45 
             insrot000 = df_res[df_res["angle"]=="0000"].insrot.values.tolist()[0]
             insrot450 = df_res[df_res["angle"]=="0450"].insrot.values.tolist()[0]
+            # Average
             insrot1   = (insrot000 + insrot450)*0.5
             insrot1_list.append(insrot1)
             # 2. theta2 is average PA of instrument rotator at 225 and 675 
             insrot225 = df_res[df_res["angle"]=="0225"].insrot.values.tolist()[0]
             insrot675 = df_res[df_res["angle"]=="0675"].insrot.values.tolist()[0]
+            # Average
             insrot2   = (insrot225 + insrot675)*0.5
             insrot2_list.append(insrot2)
 
@@ -387,14 +389,13 @@ if __name__ == "__main__":
             fi675_list.append(fi675)
 
             if args.mp:
-                # Obtain phase angle with object name
+                # Obtain phase angle of a minor planet (mp)
                 # Use the first time
                 ut = df_res.at[0, "utc"]
                 alpha, phi = utc2alphaphi(args.obj, ut, loc_Nayuta)
                 alpha_list.append(alpha)
                 phi_list.append(phi)
 
-        # Round parameters
         # Save results
         if args.out:
             out = args.out
@@ -442,17 +443,37 @@ if __name__ == "__main__":
         # Add only for post processes
         df["instpa"] = 0.
         
+
+        # Do post processes here
         if args.pp:
             # Post processes (pp)
             df = cor_poleff(
-                df, inst, band, "q", "u", "qerr", "uerr", "q_cor0", "u_cor0", 
-                "qerr_cor0", "uerr_cor0")
+                df, inst, band, 
+                "q", "u", "qerr", "uerr", 
+                "q_cor0", "u_cor0", "qerr_ran_cor0", "uerr_ran_cor0",
+                "qerr_sys_cor0", "uerr_sys_cor0",
+                "qerr_cor0", "uerr_cor0"
+                )
             df = cor_instpol(
-                df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
-                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot1", "insrot2")
+                df, inst, band, 
+                "q_cor0", "u_cor0", 
+                "qerr_ran_cor0", "uerr_ran_cor0",
+                "qerr_sys_cor0", "uerr_sys_cor0",
+                "q_cor1", "u_cor1",
+                "qerr_ran_cor1", "uerr_ran_cor1",
+                "qerr_sys_cor1", "uerr_sys_cor1",
+                "qerr_cor1", "uerr_cor1",
+                "insrot1", "insrot2")
             df = cor_paoffset(
-                df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
-                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+                df, inst, band, 
+                "q_cor1", "u_cor1", 
+                "qerr_ran_cor1", "uerr_ran_cor1",
+                "qerr_sys_cor1", "uerr_sys_cor1",
+                "q_cor2", "u_cor2",
+                "qerr_ran_cor2", "uerr_ran_cor2",
+                "qerr_sys_cor2", "uerr_sys_cor2",
+                "qerr_cor2", "uerr_cor2",
+                "instpa")
             df = calc_Ptheta(
                 df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
@@ -460,5 +481,4 @@ if __name__ == "__main__":
                 df = projectP2scaplane(
                     df, "Pr", "Prerr", "thetar", "thetarerr", 
                     "P_cor2", "Perr_cor2", "theta_cor2", "thetaerr_cor2", "phi")
-
         df.to_csv(out, sep=" ", index=False)

@@ -500,15 +500,36 @@ if __name__ == "__main__":
 
         if args.pp:
             # Post processes
+            print(0)
             df = cor_poleff(
-                df, inst, band, "q", "u", "qerr", "uerr", "q_cor0", "u_cor0", 
-                "qerr_cor0", "uerr_cor0")
+                df, inst, band, 
+                "q", "u", "qerr", "uerr", 
+                "q_cor0", "u_cor0", "qerr_ran_cor0", "uerr_ran_cor0",
+                "qerr_sys_cor0", "uerr_sys_cor0",
+                "qerr_cor0", "uerr_cor0"
+                )
+            print(1)
             df = cor_instpol(
-                df, inst, band, "q_cor0", "u_cor0", "qerr_cor0", "uerr_cor0", 
-                "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", "insrot1", "insrot2")
+                df, inst, band, 
+                "q_cor0", "u_cor0", 
+                "qerr_ran_cor0", "uerr_ran_cor0",
+                "qerr_sys_cor0", "uerr_sys_cor0",
+                "q_cor1", "u_cor1",
+                "qerr_ran_cor1", "uerr_ran_cor1",
+                "qerr_sys_cor1", "uerr_sys_cor1",
+                "qerr_cor1", "uerr_cor1",
+                "insrot1", "insrot2")
+            print(2)
             df = cor_paoffset(
-                df, inst, band, "q_cor1", "u_cor1", "qerr_cor1", "uerr_cor1", 
-                "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2", "instpa")
+                df, inst, band, 
+                "q_cor1", "u_cor1", 
+                "qerr_ran_cor1", "uerr_ran_cor1",
+                "qerr_sys_cor1", "uerr_sys_cor2",
+                "q_cor2", "u_cor2",
+                "qerr_ran_cor2", "uerr_ran_cor2",
+                "qerr_sys_cor2", "uerr_sys_cor2",
+                "qerr_cor2", "uerr_cor2",
+                "instpa")
             df = calc_Ptheta(
                 df, "P_cor2", "theta_cor2", "Perr_cor2", "thetaerr_cor2",
                 "q_cor2", "u_cor2", "qerr_cor2", "uerr_cor2")
