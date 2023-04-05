@@ -196,7 +196,7 @@ def cor_poleff(
     Parameter
     ---------
     df : pandas.DataFrame
-        input dataframe with u, q, etc.
+        input dataframe with q, u, and so on.
     inst : str
         instrument
     band : str
@@ -209,35 +209,28 @@ def cor_poleff(
     Return
     ------
     df : pandas.DataFrame
-        output dataframe with u, q, etc.
+        output dataframe with corrected u, q, and so on.
     """
     if inst == "MSI":
         # From Ishiguro+2017 (, Geem+2022a) 
         if band == "Rc" or "R":
-            # 2015 Values !!
-            peff    = 0.9971
-            pefferr = 0.0001
-            # after 2022-03
+            # 2022-03 from MSI wiki
             peff    = 0.9955
             pefferr = 0.0001
         if band == "V":
-            # 2015 Values !!
-            peff    = 0.9967
-            pefferr = 0.0003
-            # after 2022-03
+            # 2022-03 from MSI wiki
             peff    = 0.9959
             pefferr = 0.0002
 
     if inst == "WFGS2":
-        # TODO:check
-        # From Kawakami+2021
         # In Geem+2022b peff=1 (assumption)
+        # From Kawakami+2021
         peff    = 0.982
         pefferr = 0.0
 
     if inst == "HONIR":
         # From Geem+2022b
-        # TODO:check 0.9578 or 0.9858
+        # Adopt 0.9758 (sentense) rather than 0.9858 (code)
         peff    = 0.9758
         pefferr = 0.0008
 
