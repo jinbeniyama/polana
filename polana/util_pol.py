@@ -176,7 +176,8 @@ def polana_4angle(df, inst):
     elif inst == "MSI":
         q = (Rq-1)/(Rq+1)
         u = (Ru-1)/(Ru+1)
-
+    
+    # Random errors
     qerr = np.sqrt(
         4./(1+Rq)**4*Rqerr**2
         )
@@ -208,9 +209,13 @@ def polana_4angle(df, inst):
 
 
 def cor_poleff(
-    df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
-    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="u_corerr"):
+    df, inst, band, 
+    key_q="q", key_u="u", key_qerr_ran="qerr_ran", key_uerr_ran="uerr_ran",
+    key_q_cor="q_cor", key_u_cor="u_cor", 
+    key_qerr_ran_cor="qerr_ran_cor", key_uerr_ran_cor="uerr_ran_cor", 
+    key_qerr_sys_cor="qerr_sys_cor", key_uerr_sys_cor="uerr_sys_cor", 
+    key_qerr_cor="qerr_cor", key_uerr_cor="uerr_cor"
+    ):
     """
     Do correction about polarization efficiency.
 
@@ -258,27 +263,28 @@ def cor_poleff(
     df[key_q_cor] = df[key_q]/peff
     df[key_u_cor] = df[key_u]/peff 
     
-    # Random error
-    eq1 = df[key_qerr]/peff 
-    eu1 = df[key_uerr]/peff 
-
+    # Rondom errors
+    df[key_qerr_ran_cor] = df[key_qerr_ran]/peff
+    df[key_uerr_ran_cor] = df[key_uerr_ran]/peff
     # Systematic error
-    eq2 = np.abs(df[key_q])*pefferr/peff 
-    eu2 = np.abs(df[key_u])*pefferr/peff 
-    print(f"q random, systematic = {eq1}, {eq2}")
-    print(f"u random, systematic = {eu1}, {eu2}")
-
-    # Consider random errors and systematic errors
-    df[key_qerr_cor] = np.sqrt(eq1**2+eq2**2)
-    df[key_uerr_cor] = np.sqrt(eu1**2+eu2**2)
-
+    df[key_qerr_sys_cor] = np.abs(df[key_q])*pefferr/peff 
+    df[key_uerr_sys_cor] = np.abs(df[key_u])*pefferr/peff 
+    # Concatenate errors
+    df[key_qerr_cor] = np.sqrt(df[key_qerr_ran_cor]**2 + df[key_qerr_sys_cor]**2)
+    df[key_uerr_cor] = np.sqrt(df[key_uerr_ran_cor]**2 + df[key_uerr_sys_cor]**2)
     return df
 
 
 def cor_instpol(
-    df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
-    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="uerr_cor", key_insrot1="insrot1", key_insrot2="insrot2"):
+    df, inst, band, 
+    key_q="q", key_u="u", 
+    key_qerr_ran="qerr_ran", key_uerr_ran="uerr_ran",
+    key_qerr_sys="qerr_sys", key_uerr_sys="uerr_sys",
+    key_q_cor="q_cor", key_u_cor="u_cor", 
+    key_qerr_ran_cor="qerr_ran_cor", key_uerr_ran_cor="uerr_ran_cor", 
+    key_qerr_sys_cor="qerr_sys_cor", key_uerr_sys_cor="uerr_sys_cor", 
+    key_qerr_cor="qerr_cor", key_uerr_cor="uerr_cor",
+    key_insrot1="insrot1", key_insrot2="insrot2"):
     """
     Do correction about instrument polarization.
 
@@ -290,10 +296,10 @@ def cor_instpol(
         instrument
     band : str
          filter
-    key_q, key_u, key_qerr, key_uerr : str
-        keywords for original q, u, and their errors
-    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
-        keywords for corrected q, u, and their errors
+    key_q, key_qerr_ran, key_qerr_sys : float
+        keywords for original q and their errors
+    key_q_cor, key_qerr_ran_cor, key_qerr_sys_cor, key_qerr_cor : float
+        keywords for corrected q and their errors
     key_insrot1 : str
         keyword for angle of instrument rotator at 0 and 45 deg
     key_insrot2 : str
@@ -305,6 +311,7 @@ def cor_instpol(
         output dataframe with u, q, etc.
     """
 
+    print("Random errors are not changed in this correction!")
 
     if inst == "MSI":
         # From MSI wiki
@@ -367,24 +374,38 @@ def cor_instpol(
         df[key_u] - (np.sin(2*insrot2)*qinst + np.cos(2*insrot2)*uinst)
         )
 
-    df[key_qerr_cor] = np.sqrt(
-        df[key_qerr]**2 
+
+    # Rondom errors (not changed)
+    df[key_qerr_ran_cor] = df[key_qerr_ran]
+    df[key_uerr_ran_cor] = df[key_uerr_ran]
+    # Systematic errors
+    print(key_qerr_sys_cor)
+    df[key_qerr_sys_cor] = np.sqrt(
+        df[key_qerr_sys]**2
         + (np.cos(2*insrot1)*qinsterr)**2 
         + (np.sin(2*insrot1)*uinsterr)**2 
         )
-    df[key_uerr_cor] = np.sqrt(
-        df[key_uerr]**2 
+    df[key_uerr_sys_cor] = np.sqrt(
+        df[key_uerr_sys]**2
         + (np.sin(2*insrot2)*qinsterr)**2 
         + (np.cos(2*insrot2)*uinsterr)**2 
         )
-
+    # Concatenate errors
+    df[key_qerr_cor] = np.sqrt(df[key_qerr_ran_cor]**2 + df[key_qerr_sys_cor]**2)
+    df[key_uerr_cor] = np.sqrt(df[key_uerr_ran_cor]**2 + df[key_uerr_sys_cor]**2)
     return df
 
 
 def cor_paoffset(
-    df, inst, band, key_q="q", key_u="u", key_qerr="qerr", key_uerr="uerr",
-    key_q_cor="q_cor", key_u_cor="u_cor", key_qerr_cor="qerr_cor", 
-    key_uerr_cor="uerr_cor", key_instpa="INSTPA"):
+    df, inst, band, 
+    key_q="q", key_u="u", 
+    key_qerr_ran="qerr_ran", key_uerr_ran="uerr_ran",
+    key_qerr_sys="qerr_sys", key_uerr_sys="uerr_sys",
+    key_q_cor="q_cor", key_u_cor="u_cor", 
+    key_qerr_ran_cor="qerr_ran_cor", key_uerr_ran_cor="uerr_ran_cor", 
+    key_qerr_sys_cor="qerr_sys_cor", key_uerr_sys_cor="uerr_sys_cor", 
+    key_qerr_cor="qerr_cor", key_uerr_cor="uerr_cor",
+    key_instpa="INSTPA"):
     """
     Do correction about position angle offset.
 
@@ -396,10 +417,10 @@ def cor_paoffset(
         instrument
     band : str
          filter
-    key_q, key_u, key_qerr, key_uerr : str
-        keywords for original q, u, and their errors
-    key_q_cor, key_u_cor, key_qerr_cor, key_uerr_cor : str
-        keywords for corrected q, u, and their errors
+    key_q, key_qerr_ran, key_qerr_sys : float
+        keywords for original q and their errors
+    key_q_cor, key_qerr_ran_cor, key_qerr_sys_cor, key_qerr_cor : float
+        keywords for corrected q and their errors
     key_instpa : str
         keywords for position angle of instrumet
 
@@ -492,9 +513,7 @@ def cor_paoffset(
     #                = theta_off_here + INSTPA
     thetarot = theta_off + df[key_instpa]
     instpaerr = 0
-    thetaroterr = np.sqrt(
-        theta_offerr**2 + instpaerr**2
-        )
+    thetaroterr = theta_offerr
 
     # In radian
     thetarot    = np.deg2rad(thetarot)
@@ -509,11 +528,27 @@ def cor_paoffset(
         np.sin(2*thetarot)*df[key_q] + np.cos(2*thetarot)*df[key_u]
         )
 
-    # The errors are the same (only rotation)
-    df[key_qerr_cor] = df[key_qerr]
-    df[key_uerr_cor] = df[key_uerr]
-    # TODO: add systematic error?
-
+    # Rondom errors
+    df[key_qerr_ran_cor] = np.sqrt(
+        (np.cos(2*thetarot)*df[key_qerr_ran])**2 + (np.sin(2*thetarot)*df[key_uerr_ran])**2
+        )
+    df[key_uerr_ran_cor] = np.sqrt(
+        (np.sin(2*thetarot)*df[key_qerr_ran])**2 + (np.cos(2*thetarot)*df[key_uerr_ran])**2
+        )
+    # Systematic errors
+    df[key_qerr_sys_cor] = np.sqrt(
+        (np.cos(2*thetarot)*df[key_qerr_sys])**2 
+        + (np.sin(2*thetarot)*df[key_uerr_sys])**2
+        + (2*df[key_u_cor]*thetaroterr)**2
+        )
+    df[key_uerr_sys_cor] = np.sqrt(
+        (np.sin(2*thetarot)*df[key_qerr_sys])**2 
+        + (np.cos(2*thetarot)*df[key_uerr_sys])**2
+        + (2*df[key_q_cor]*thetaroterr)**2
+        )
+    # Concatenate errors
+    df[key_qerr_cor] = np.sqrt(df[key_qerr_ran_cor]**2 + df[key_qerr_sys_cor]**2)
+    df[key_uerr_cor] = np.sqrt(df[key_uerr_ran_cor]**2 + df[key_uerr_sys_cor]**2)
     return df
 
 
