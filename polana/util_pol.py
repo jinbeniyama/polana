@@ -212,9 +212,9 @@ def cor_poleff(
         output dataframe with corrected u, q, and so on.
     """
     if inst == "MSI":
-        # From Ishiguro+2017 (, Geem+2022a) 
+        # from MSI wiki
         if band == "Rc" or "R":
-            # 2022-03 from MSI wiki
+            # 2022-03 
             peff    = 0.9955
             pefferr = 0.0001
         if band == "V":
@@ -274,36 +274,26 @@ def cor_instpol(
 
 
     if inst == "MSI":
-        # From Ishiguro+2017 (, Geem+2022a)
+        # From MSI wiki
         if band == "Rc" or "R":
-            # 2015 Values !!
-            qinst    = 0.00703
-            qinsterr = 0.00033
-            uinst    = 0.00337
-            uinsterr = 0.00020
-            # after 2022-03?
+            # 2022-03
             qinst    = 0.00862
             qinsterr = 0.00013
             uinst    = 0.00379
             uinsterr = 0.00013
-            # after 2022-11?
+            # 2022-11
             qinst    = 0.00584
             qinsterr = 0.00011
             uinst    = 0.00751
             uinsterr = 0.00011
 
         elif band == "V":
-            # 2015 Values !!
-            qinst    = 0.00963
-            qinsterr = 0.00029
-            uinst    = 0.00453
-            uinsterr = 0.00043
-            # after 2022-03?
+            # 2022-03
             qinst    = 0.01202
             qinsterr = 0.00013
             uinst    = 0.00530
             uinsterr = 0.00013
-            # after 2022-11?
+            # 2022-11
             qinst    = 0.00785
             qinsterr = 0.00020
             uinst    = 0.01077
@@ -311,6 +301,7 @@ def cor_instpol(
 
     if inst == "WFGS2":
         # From code in Geem+2022b
+        # TODO:Depending on theta_rot?
         if band == "Rc" or "R":
             qinst    = -0.00043
             qinsterr =  0.00012
@@ -334,6 +325,7 @@ def cor_instpol(
     insrot1err = 0
     insrot2    = np.deg2rad(df[key_insrot2])
     insrot2err = 0
+    print(f"INSROT angle in deg 1, 2 = {insrot1}, {insrot2}")
     
     df[key_q_cor] =  (
         df[key_q] - (np.cos(2*insrot1)*qinst - np.sin(2*insrot1)*uinst)
@@ -342,9 +334,6 @@ def cor_instpol(
         df[key_u] - (np.sin(2*insrot2)*qinst + np.cos(2*insrot2)*uinst)
         )
 
-    print("INSROT angle in deg")
-    print(insrot1)
-    print(insrot2)
     df[key_qerr_cor] = np.sqrt(
         df[key_qerr]**2 
         + (np.cos(2*insrot1)*qinsterr)**2 
@@ -389,18 +378,14 @@ def cor_paoffset(
 
     # Care should be taken when it comes to theta_off.
     # In Ishiguro+2017, theta_off is 3.38 deg for MSI.
-    # The definition of theta_off is unclear, but they
-    # defined it as theta_off = theta_obs - theta_lt.
+    # The definition of theta_off is 
+    #     theta_off = theta_obs - theta_lt.
     # Then theta_off = 3.38.
-    # New Note on 2023-03-20:
-    # By Jooyeon,
-    # \theta_{observation} = \theta_{Catalog} - \theta_{offset}.
-    # -> theta_off = theta_lt - theta_obs
-    # Different from Ishiguro+2017!
+    # FYI, Jooyeon uses the same definition.
 
     # In Kawakami+2021, theta_off is -5.19 for WFGS2.
-    # The definition of theta_off is clear. They
-    # defined it as theta_off = theta_lt - theta_obs.
+    # The definition of theta_off is 
+    #     theta_off = theta_lt - theta_obs.
     # Then theta_off = -5.19.
 
     # The definition for HONIR is the same with WFGS2. 
@@ -408,34 +393,30 @@ def cor_paoffset(
     # it is easily tested changing the sign of theta_off in this code below.)
 
     # We use the same definition of theta_off with Kawakami+2021.
-    # Thus we use theta_off = -3.38 for MSI.
+    # Thus we use theta_off = -3.38 (or other negative values) for MSI.
     
-    
-    # temporally
-    #df[key_q] = -0.01045352
-    #df[key_u] = -0.04421329
 
-    # Check the sign carefully !!!
+    # From MSI wiki
     if inst == "MSI":
-        # Here we use theta_off = theta_lt - theta_obs ~ -3.38
+        # Here we use theta_off = ''theta_lt - theta_obs'' = -XX (negative).
         if band == "Rc" or "R":
-            # 2015 Values !!
+            # 2015-05
             theta_off    = -3.38
             theta_offerr = 0.37
-            # After 2022-03?
+            # 2022-03
             theta_off    = -3.54
             theta_offerr = 0.11
-            # After 2022-11?
+            # 2022-11
             theta_off    = -17.09
             theta_offerr = 0.52
         if band == "V":
-            # 2015 Values !!
+            # 2015-05
             theta_off    = -3.82
             thta_offerr = 0.38
-            # After 2022-03?
+            # 2022-03
             theta_off    = -3.84
             thtea_offerr = 0.14
-            # After 2022-11?
+            # 2022-11
             theta_off    = -20.61
             theta_offerr = 0.26
 
@@ -450,11 +431,12 @@ def cor_paoffset(
 
     if inst == "HONIR":
         if band == "Rc" or "R":
+            # From Geem+2022b
             # Seems very good for HD19820 data taken on 2022-12-27 !!
-            # And consistent with Geem+2022b
             theta_off    = 36.8
             theta_offerr = 0.13
     
+
     # TODO: Why this INSTPA is needed.
     #       I think if INSTPA is fixed and always the same, 
     #       the INSTPA is cancelled out...
