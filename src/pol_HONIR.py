@@ -44,6 +44,7 @@ from polana.util_pol import (
     polana_4angle, cor_poleff, cor_instpol, cor_paoffset,
     calc_Ptheta, projectP2scaplane)
 from polana.visualization import mycolor
+from movphot.photfunc import obtain_winpos
 
 
 if __name__ == "__main__":
@@ -273,6 +274,22 @@ if __name__ == "__main__":
                 print(f"  Aperture location after baricenter search")
                 print(f"    xe0, ye0 = {xe0:.2f}, {ye0:.2f}")
                 print(f"    xe1, ye1 = {xe1:.2f}, {ye1:.2f}")
+
+
+                # winpos
+                # initial guesses are returns of sep.extract
+                xwino, ywino, flag = obtain_winpos(img_o, [xo1], [yo1], radius, nx, ny)
+                xwine, ywine, flag = obtain_winpos(img_e, [xe1], [ye1], radius, nx, ny)
+                xwino_full = xwino[0] + xmin_o
+                ywino_full = ywino[0] + ymin_o
+                xwine_full = xwine[0] + xmin_e
+                ywine_full = ywine[0] + ymin_e
+                
+                xe1, ye1, xo1, yo1 = xwine, ywine, xwino, ywino
+                xe1_full = xwine_full
+                xo1_full = xwino_full
+                ye1_full = ywine_full
+                yo1_full = ywino_full
                 # Source detection ============================================
 
 
