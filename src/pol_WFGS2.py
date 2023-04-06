@@ -205,28 +205,15 @@ if __name__ == "__main__":
                 # Background subtraction ======================================
 
 
-                # Source detection ============================================
-                # 5-sigma detection
-                #dth     = 5
-                #minarea = 15
-                #objects = extract(img, dth, minarea, bgerr, mask=None)
-                #N_obj   = len(objects)
-                #print(f"{N_obj} objects detected on {idx_fi+1}-th fits {fi}.")
-                
                 # Original coordinates of the target
                 x0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "x"]
                 y0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "y"]
                 print(f"  {fi}, {x0}, {y0}")
 
-                # # Search the most suitable objects
-                # x_base, y_base = objects["x"], objects["y"]
-                # tree_base = KDTree(list(zip(x_base, y_base)), leafsize=10)
-                # # Ordinary
-                # res = tree_base.query_ball_point((x0, y0), radius)
-
-                # # New barycenters
-                # x1, y1 = res
-                # Source detection ============================================
+                # Search winpos
+                from movphot.photfunc import obtain_winpos
+                x1, y1, flag = obtain_winpos(img, [x0], [y0], radius, nx, ny)
+                print(f"Search barycenter {x0:.1f}, {y0:.1f} to {x1[0]:.1f}, {y1[0]:.1f}")
 
 
                 # Do photometry ===============================================
@@ -240,7 +227,7 @@ if __name__ == "__main__":
                 # fluxerr**2 = bgerr_per_pix**2*N_pix + Poission**2
                 #            = bgerr_per_pix**2*N_pix + (flux*gain)/gain**2
                 flux, fluxerr, eflag = sep.sum_circle(
-                    img, [x0], [y0], r=radius, err=bgerr, gain=gain,
+                    img, [x1], [y1], r=radius, err=bgerr, gain=gain,
                     bkgann=bkgann)
                 flux, fluxerr = float(flux), float(fluxerr)
                 # Do photometry ===============================================
