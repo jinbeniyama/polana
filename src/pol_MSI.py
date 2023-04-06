@@ -41,6 +41,7 @@ from polana.util_pol import (
     polana_4angle, cor_poleff, cor_instpol, cor_paoffset, 
     calc_Ptheta, projectP2scaplane)
 from polana.visualization import mycolor
+from movphot.photfunc import obtain_winpos
 
 
 if __name__ == "__main__":
@@ -88,6 +89,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--width", type=int, default=50,
         help="x and y width in pixel")
+    parser.add_argument(
+      "--bw", type=int, default=16, 
+      help="box width and height for bgsubtraction")
+    parser.add_argument(
+      "--fw", type=int, default=3, 
+      help="median filter width and height for bgsubtraction")
     args = parser.parse_args()
     
     outdir = args.outdir
@@ -199,15 +206,14 @@ if __name__ == "__main__":
                 #print(f"Original Median: {np.median(img)}")
                 if args.ann:
                     print("    !! Do not subtract background with sep!!")
-                    print(f"    !! Simply subtract median {np.median(img):.1f} ADU!!")
                     # For error calculation in sep.sum_circle
                     bgerr_e = 0
                     bgerr_o = 0
 
                 else:
                     #img_e, bg_info_e = remove_bg_2d(img_e, bw=100, fw=30)
-                    img_e, bg_info_e = remove_bg_2d(img_e)
-                    img_o, bg_info_o = remove_bg_2d(img_o)
+                    img_e, bg_info_e = remove_bg_2d(img_e, None, args.bw, args.fw)
+                    img_o, bg_info_o = remove_bg_2d(img_o, None, args.bw, args.fw)
                     bgerr_e = np.round(bg_info_e["rms"], 2)
                     bgerr_o = np.round(bg_info_o["rms"], 2)
 
@@ -236,13 +242,8 @@ if __name__ == "__main__":
                     img_o, dth, err=bgerr_o, minarea=minarea, mask=None)
                 N_obj_e   = len(objects_e)
                 N_obj_o   = len(objects_o)
-                print("Objects in e")
-                print(objects_e)
-                print("Objects in o")
-                print(objects_o)
                 assert N_obj_e == 1, "Check the coordinates"
                 assert N_obj_o == 1, "Check the coordinates"
-
                 # Search the baricenters after cut and bgsub
                 print(f"  Aperture location after baricenter search")
                 # Ordinary
@@ -260,6 +261,23 @@ if __name__ == "__main__":
                 print(f"  Aperture location after baricenter search")
                 print(f"    xe0, ye0 = {xe0:.2f}, {ye0:.2f}")
                 print(f"    xe1, ye1 = {xe1_full:.2f}, {ye1_full:.2f}")
+
+                # winpos
+                # initial guesses are returns of sep.extract
+                xwino, ywino, flag = obtain_winpos(img_o, [xo1], [yo1], radius, nx, ny)
+                xwine, ywine, flag = obtain_winpos(img_e, [xe1], [ye1], radius, nx, ny)
+                xwino_full = xwino[0] + xmin_o
+                ywino_full = ywino[0] + ymin_o
+                xwine_full = xwine[0] + xmin_e
+                ywine_full = ywine[0] + ymin_e
+                
+                xe1, ye1, xo1, yo1 = xwine, ywine, xwino, ywino
+                xe1_full = xwine_full
+                xo1_full = xwino_full
+                ye1_full = ywine_full
+                yo1_full = ywino_full
+
+
                 # Source detection ============================================
 
 
@@ -500,7 +518,6 @@ if __name__ == "__main__":
 
         if args.pp:
             # Post processes
-            print(0)
             df = cor_poleff(
                 df, inst, band, 
                 "q", "u", "qerr", "uerr", 
@@ -508,7 +525,6 @@ if __name__ == "__main__":
                 "qerr_sys_cor0", "uerr_sys_cor0",
                 "qerr_cor0", "uerr_cor0"
                 )
-            print(1)
             df = cor_instpol(
                 df, inst, band, 
                 "q_cor0", "u_cor0", 
@@ -519,12 +535,11 @@ if __name__ == "__main__":
                 "qerr_sys_cor1", "uerr_sys_cor1",
                 "qerr_cor1", "uerr_cor1",
                 "insrot1", "insrot2")
-            print(2)
             df = cor_paoffset(
                 df, inst, band, 
                 "q_cor1", "u_cor1", 
                 "qerr_ran_cor1", "uerr_ran_cor1",
-                "qerr_sys_cor1", "uerr_sys_cor2",
+                "qerr_sys_cor1", "uerr_sys_cor1",
                 "q_cor2", "u_cor2",
                 "qerr_ran_cor2", "uerr_ran_cor2",
                 "qerr_sys_cor2", "uerr_sys_cor2",
