@@ -102,6 +102,7 @@ if __name__ == "__main__":
             key_Perr_ran="Perr_ran", key_thetaerr_ran="thetaerr_ran",
             key_Perr_sys="Perr_sys", key_thetaerr_sys="thetaerr_sys",
             key_Perr="Perr_cor0", key_thetaerr="thetaerr_cor0")
+        print(df["thetaerr_cor0"])
         plot_obspolres(
             ax, df, args.key_obs+"peff corrected", obj,
             key_P="P_cor0", key_Perr="Perr_cor0",
@@ -145,6 +146,8 @@ if __name__ == "__main__":
             key_q="q_cor2", key_qerr="qerr_cor2", 
             key_u="u_cor2", key_uerr="uerr_cor2",
             color=mycolor[2], marker=mymark[3], ls="solid")
+        
+        print("Final P, theta = ")
     # Observation (after correction) ==========================================
 
 
