@@ -7,88 +7,6 @@ import numpy as np
 import pandas as pd
 
 
-def projectP2scaplane(
-    df, key_Pr, key_Prerr, key_thetar, key_thetarerr, 
-    key_P, key_Perr, key_theta, key_thetaerr, key_phi):
-    """
-    Project the linear polarization degree to scattering plane using 
-    object-Sun vector.
-
-    Parameters
-    ----------
-    df : pandas.Dataframe
-        input dataframe
-
-    Return
-    ------
-    df : pandas.DataFrame
-        output dataframe
-    """
-    # TODO:update 
-    # Assume phi is almost the same at the night (=df)
-    # In degree
-    # The domain of definition of phi is between 0 < phi < 360.
-    phi = np.mean(df[key_phi])
-
-
-    # 2023-02-19 ==============================================================
-    # 0 < phi < 90
-    if phi < 90:
-        pi = df[key_phi] + 90
-    # 90 < phi < 180
-    elif phi < 180:
-        pi = df[key_phi] - 90
-    # 180 < phi < 270
-    elif phi < 270:
-        pi = df[key_phi] - 90
-    # 270 < phi < 360
-    else:
-        pi = df[key_phi] - 270
-
-    # TODO:check
-    # Range 0 < theta < pi/2.0 ??
-
-    # In radian
-    # theta_r is angle between normal to the scattering plane and position angle of polarization
-
-    # OK for Nayuta
-    #df[key_thetar] = df[key_theta] - np.deg2rad(pi)
-    #df[key_thetar] = np.mod(df[key_thetar], np.pi/2.0)
-
-    theta_deg = np.rad2deg(df[key_theta])
-    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
-    thetar_deg = np.rad2deg(df[key_thetar])
-    try:
-        print(f"theta, phi, pi, theta_r = {theta_deg:.1f}, {phi:.1f}, {pi:.1f}, {thetar_deg:.1f}")
-    except:
-        print(f"theta, phi, pi, theta_r = {theta_deg}, {phi}, {pi}, {thetar_deg}")
-    #df[key_thetar] = np.mod(df[key_thetar], np.pi/)
-
-    df[key_thetarerr] = df[key_thetaerr]
-    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
-    # 2023-02-19 ==============================================================
-
-    # Geem+2022b ==============================================================
-    # if phi + 90 < 180:
-    #     pi = phi + 90
-    # else:
-    #     pi = phi - 90
-    # df[key_thetar] = df[key_theta] - np.deg2rad(pi)
-    # df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
-    # df[key_thetarerr] = df[key_thetaerr]
-    # Geem+2022b ==============================================================
-
-
-    # TODO: check
-    # Most previous studies 
-    # (De Luise+2007, Kuroda+2018, 2021, Geem+2022a, Kiselev+2022)
-    # seem to assume Prerr = Perr......?
-    #df[key_Prerr] = np.sqrt(
-    #        (np.cos(2*df[key_thetar])*df[key_Perr])**2 
-    #        + (2*df[key_P]*np.sin(2*df[key_thetar]))**2
-    #        )
-    df[key_Prerr] = df[key_Perr]
-    return df
 
 
 def polana_4angle(df, inst):
@@ -574,7 +492,10 @@ def calc_Ptheta(
     df[key_Perr_sys] = np.sqrt(
         df[key_q]**2*df[key_qerr_sys]**2 + df[key_u]**2*df[key_uerr_sys]**2
         )/df[key_P]
+
     # Correct positive bias in the linear polarization degree
+    # using equation in Wardle & Kronberg 1974.
+    # Another approximation is introduced in Wang+1977.
     for idx_row, row in df.iterrows():
         P        = row[key_P]
         Perr_ran = row[key_Perr_ran]
@@ -585,7 +506,6 @@ def calc_Ptheta(
     # Concatenate
     df[key_Perr] = np.sqrt(
         df[key_Perr_ran]**2 + df[key_Perr_sys]**2)
-
 
     # Calculate theta
     # Assume all signs of u are the same
@@ -600,13 +520,13 @@ def calc_Ptheta(
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
 
     # Calculate thetaerr
+    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
     # 1. standard calculation
     #df[key_thetaerr] = np.sqrt(
     #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
     #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
-    #    )
-    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
-    # 2. useful result
+
+    # 2. useful result 
     df[key_thetaerr_ran] = 0.5*df[key_Perr_ran]/df[key_P]
     df[key_thetaerr_sys] = 0.5*df[key_Perr_sys]/df[key_P]
 
@@ -622,8 +542,96 @@ def calc_Ptheta(
     df[key_thetaerr] = np.sqrt(
         df[key_thetaerr_ran]**2 + df[key_thetaerr_sys]**2)
 
+    # See Naghizadeh-Khouei & Clarke 1993
+    df.loc[df[key_P]==0, key_thetaerr_ran] = 0
+    df.loc[df[key_P]==0, key_thetaerr_sys] = 0
+    df.loc[df[key_P]==0, key_thetaerr] = np.deg2rad(51.96)
+
     return df
 
+
+def projectP2scaplane(
+    df, key_Pr, key_Prerr, key_thetar, key_thetarerr, 
+    key_P, key_Perr, key_theta, key_thetaerr, key_phi):
+    """
+    Project the linear polarization degree to scattering plane using 
+    object-Sun vector.
+
+    Parameters
+    ----------
+    df : pandas.Dataframe
+        input dataframe
+
+    Return
+    ------
+    df : pandas.DataFrame
+        output dataframe
+    """
+    # TODO:update 
+    # Assume phi is almost the same at the night (=df)
+    # In degree
+    # The domain of definition of phi is between 0 < phi < 360.
+    phi = np.mean(df[key_phi])
+
+
+    # 2023-02-19 ==============================================================
+    # 0 < phi < 90
+    if phi < 90:
+        pi = df[key_phi] + 90
+    # 90 < phi < 180
+    elif phi < 180:
+        pi = df[key_phi] - 90
+    # 180 < phi < 270
+    elif phi < 270:
+        pi = df[key_phi] - 90
+    # 270 < phi < 360
+    else:
+        pi = df[key_phi] - 270
+
+    # TODO:check
+    # Range 0 < theta < pi/2.0 ??
+
+    # In radian
+    # theta_r is angle between normal to the scattering plane and position angle of polarization
+
+    # OK for Nayuta
+    #df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    #df[key_thetar] = np.mod(df[key_thetar], np.pi/2.0)
+
+    theta_deg = np.rad2deg(df[key_theta])
+    df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    thetar_deg = np.rad2deg(df[key_thetar])
+    try:
+        print(f"theta, phi, pi, theta_r = {theta_deg:.1f}, {phi:.1f}, {pi:.1f}, {thetar_deg:.1f}")
+    except:
+        print(f"theta, phi, pi, theta_r = {theta_deg}, {phi}, {pi}, {thetar_deg}")
+    #df[key_thetar] = np.mod(df[key_thetar], np.pi/)
+
+    df[key_thetarerr] = df[key_thetaerr]
+    df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+    # 2023-02-19 ==============================================================
+
+    # Geem+2022b ==============================================================
+    # if phi + 90 < 180:
+    #     pi = phi + 90
+    # else:
+    #     pi = phi - 90
+    # df[key_thetar] = df[key_theta] - np.deg2rad(pi)
+    # df[key_Pr] = df[key_P] * np.cos(2*df[key_thetar])
+    # df[key_thetarerr] = df[key_thetaerr]
+    # Geem+2022b ==============================================================
+
+
+    # TODO: check
+    # Most previous studies 
+    # (De Luise+2007, Kuroda+2018, 2021, Geem+2022a, Kiselev+2022)
+    # seem to assume Prerr = Perr......?
+    #df[key_Prerr] = np.sqrt(
+    #        (np.cos(2*df[key_thetar])*df[key_Perr])**2 
+    #        + (2*df[key_P]*np.sin(2*df[key_thetar]))**2
+    #        )
+    df[key_Prerr] = df[key_Perr]
+    return df
 
 
 def check_oe_dipol2(x0, x1, y0, y1, band):
