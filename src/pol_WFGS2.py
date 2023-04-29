@@ -244,28 +244,50 @@ if __name__ == "__main__":
                     label = f"{args.obj} (x, y)=({x0}, {y0})"
                     color = mycolor[0]
                     ls = "solid"
+                    color_ann = mycolor[1]
+                    ls_ann = "dashed"
 
                     # Plot src image after 5-sigma clipping 
                     sigma = 5
                     _, vmin, vmax = sigmaclip(img, sigma, sigma)
 
-                    fig = plt.figure(figsize=(12,int(12*ny/nx)))
-                    ax = fig.add_subplot(111)
-                    ax.imshow(img, cmap='gray', vmin=vmin, vmax=vmax)
-                    ax.scatter(
-                        x0, y0, color=color, s=radius, lw=1, 
+                    fig = plt.figure(figsize=(12, 12))
+                    ax1 = fig.add_axes([0.1, 0.15, 0.35, 0.75])
+                    ax2 = fig.add_axes([0.55, 0.15, 0.35, 0.75])
+                    ax1.set_title("BG subtracted")
+                    ax2.set_title("BG")
+
+                    # Plot bg subtracted image
+                    ax1.imshow(img, cmap='gray', vmin=vmin, vmax=vmax)
+                    # Plot bg image
+                    #ax2.imshow(bg, cmap='gray', vmin=vmin, vmax=vmax)
+
+                    ax1.scatter(
+                        x1, y1, color=color, s=radius, lw=1, 
                         facecolor="None", alpha=1, label=label)
-                    ax.add_collection(PatchCollection(
-                        [Circle((x0, y0), radius)],
+                    # Radius
+                    ax1.add_collection(PatchCollection(
+                        [Circle((x1, y1), radius)],
                         color=color, ls=ls, lw=1, facecolor="None", label=None)
                         )
-                    ax.set_xlim([0, nx])
-                    ax.set_ylim([0, ny])
-                    ax.legend().get_frame().set_alpha(1.0)
-                    ax.invert_yaxis()
+                    # Annulus
+                    if args.ann:
+                        ax1.add_collection(PatchCollection(
+                            [Circle((x1, y1), radius+ann_gap)],
+                            color=color_ann, ls=ls_ann, lw=1, facecolor="None", label=None)
+                            )
+                        ax1.add_collection(PatchCollection(
+                            [Circle((x1, y1), radius+ann_gap+ann_width)],
+                            color=color_ann, ls=ls_ann, lw=1, facecolor="None", label=None)
+                            )
+                    ax1.set_xlim([0, nx])
+                    ax1.set_ylim([0, ny])
+                    ax1.legend().get_frame().set_alpha(1.0)
+                    ax1.invert_yaxis()
                     plt.tight_layout()
                     plt.savefig(out, dpi=200)
                     plt.close()
+                    #assert False, 1
                 # Plot photometry region ======================================
 
 

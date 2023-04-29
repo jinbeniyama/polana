@@ -330,12 +330,18 @@ if __name__ == "__main__":
 
                     color_o, color_e = mycolor[0], mycolor[1]
                     ls = "solid"
+                    ls_ann = "dashed"
 
                     # Plot src image after 5-sigma clipping 
                     sigma = 5
 
-                    fig = plt.figure(figsize=(12,int(12*ny/nx)))
-                    ax = fig.add_subplot(111)
+                    fig = plt.figure(figsize=(6,int(8*ny/nx)))
+                    ax = fig.add_axes([0.1, 0.5, 0.8, 0.45])
+                    ax3d_o = fig.add_axes([0.1, 0.15, 0.3, 0.3], projection="3d")
+                    ax3d_e = fig.add_axes([0.55, 0.15, 0.3, 0.3], projection="3d")
+                    ax3d_o.view_init(elev=60, azim=70)
+                    ax3d_e.view_init(elev=60, azim=70)
+
                     _, vmin, vmax = sigmaclip(img, sigma, sigma)
                     ax.imshow(img, cmap='gray', vmin=vmin, vmax=vmax)
 
@@ -347,7 +353,6 @@ if __name__ == "__main__":
                         [Circle((xo1_full, yo1_full), radius)], color=color_o, ls=ls, 
                         lw=1, facecolor="None", label=None)
                         )
-
                     # Extra-ordainary
                     ax.scatter(
                         xe1_full, ye1_full, color=color_e, s=radius, lw=1, 
@@ -356,6 +361,35 @@ if __name__ == "__main__":
                         [Circle((xe1_full, ye1_full), radius)], color=color_e, ls=ls, 
                         lw=1, facecolor="None", label=None)
                         )
+
+                    # Annulus
+                    if args.ann:
+                        # Ordainary
+                        ax.add_collection(PatchCollection(
+                            [Circle((xo1_full, yo1_full), radius+ann_gap)],
+                            color=color_o, ls=ls_ann, lw=1, facecolor="None", label=None)
+                            )
+                        ax.add_collection(PatchCollection(
+                            [Circle((xo1_full, yo1_full), radius+ann_gap+ann_width)],
+                            color=color_o, ls=ls_ann, lw=1, facecolor="None", label=None)
+                            )
+                        # Extra-ordainary
+                        ax.add_collection(PatchCollection(
+                            [Circle((xe1_full, ye1_full), radius+ann_gap)],
+                            color=color_e, ls=ls_ann, lw=1, facecolor="None", label=None)
+                            )
+                        ax.add_collection(PatchCollection(
+                            [Circle((xe1_full, ye1_full), radius+ann_gap+ann_width)],
+                            color=color_e, ls=ls_ann, lw=1, facecolor="None", label=None)
+                            )
+
+                    # Add 3d-plot
+                    y, x = np.mgrid[:img_o.shape[0], :img_o.shape[1]]
+                    color = ax3d_o.plot_surface(x, y, img_o, cmap='CMRmap',
+                        edgecolor='k', rstride=5, cstride=5)
+                    y, x = np.mgrid[:img_e.shape[0], :img_e.shape[1]]
+                    color = ax3d_e.plot_surface(x, y, img_e, cmap='CMRmap',
+                        edgecolor='k', rstride=5, cstride=5)
 
                     ax.set_xlim([0, nx])
                     ax.set_ylim([0, ny])
