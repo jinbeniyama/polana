@@ -295,7 +295,6 @@ def cor_instpol(
     df[key_qerr_ran_cor] = df[key_qerr_ran]
     df[key_uerr_ran_cor] = df[key_uerr_ran]
     # Systematic errors
-    print(key_qerr_sys_cor)
     df[key_qerr_sys_cor] = np.sqrt(
         df[key_qerr_sys]**2
         + (np.cos(2*insrot1)*qinsterr)**2 
@@ -507,7 +506,7 @@ def calc_Ptheta(
 
     # Calculate theta
     # Assume all signs of u are the same
-    # TODO:check
+    # TODO: update
     mean_arctan2 = np.mean(np.arctan2(df[key_u], df[key_q]))
     # The domain of definition of theta is 0 < theta < pi.
     if mean_arctan2 > 0:
@@ -517,16 +516,6 @@ def calc_Ptheta(
         df[key_theta] = 0.5*np.arctan2(df[key_u], df[key_q]) + np.pi
     assert 0 < np.mean(df[key_theta]) < np.pi, "Check the code."
 
-    # Calculate thetaerr
-    # TODO: Why 1. and 2. slightly different ?? (at least MSI data obtained in 2022-12-21)
-    # 1. standard calculation
-    #df[key_thetaerr] = np.sqrt(
-    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
-    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
-    # 2. useful result 
-    df[key_thetaerr_ran] = 0.5*df[key_Perr_ran]/df[key_P]
-    df[key_thetaerr_sys] = 0.5*df[key_Perr_sys]/df[key_P]
-
     # arctan2(y, x) returns arctan(y/x)
     # By default, domain of definition of arctan2 is from -pi to pi.
     # But 
@@ -534,6 +523,15 @@ def calc_Ptheta(
     #   and that of arctan(U/Q) is also from 0 to 2 pi.
     # Note for Excel for Microsoft users:
     #   np.arctan2(u, q) corresponds to ATAN2(q; u).
+
+    # Calculate thetaerr
+    # 1. standard calculation
+    #df[key_thetaerr] = np.sqrt(
+    #    0.25/(1+(df[key_u]/df[key_q])**2)**2*((df[key_uerr]/df[key_q])**2 
+    #    + (df[key_u]*df[key_qerr]/df[key_q]**2)**2)    
+    # 2. useful result 
+    df[key_thetaerr_ran] = 0.5*df[key_Perr_ran]/df[key_P]
+    df[key_thetaerr_sys] = 0.5*df[key_Perr_sys]/df[key_P]
 
     # Concatenate
     df[key_thetaerr] = np.sqrt(
@@ -625,7 +623,6 @@ def projectP2scaplane(
     # pi = phi - 270
     # theta_r = theta - pi
     # Geem+2022b ==============================================================
-
     return df
 
 
