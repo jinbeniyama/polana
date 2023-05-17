@@ -90,7 +90,7 @@ if __name__ == "__main__":
         "-p", "--photmap", action='store_true',
         help='create photometry region map (a bit slow)')
     parser.add_argument(
-        "--width", type=int, default=50,
+        "--width", type=int, default=100,
         help="x and y width in pixel")
     args = parser.parse_args()
     
