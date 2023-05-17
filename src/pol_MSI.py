@@ -87,7 +87,7 @@ if __name__ == "__main__":
         "-p", "--photmap", action='store_true',
         help='create photometry region map (a bit slow)')
     parser.add_argument(
-        "--width", type=int, default=50,
+        "--width", type=int, default=100,
         help="x and y width in pixel")
     parser.add_argument(
       "--bw", type=int, default=16, 
@@ -295,7 +295,7 @@ if __name__ == "__main__":
                     img_o, [xo1], [yo1], r=radius, err=bgerr_o, gain=gain,
                     bkgann=bkgann)
                 flux_o, fluxerr_o = float(flux_o), float(fluxerr_o)
-                print(f" xo0, yo0 = {xo0}, {yo0}")
+                print(f"  xo0, yo0 = {xo0}, {yo0}")
                 print(f"  flux_o, fluxerr_o, SNR_o = {flux_o:.2f}, {fluxerr_o:.2f}, {flux_o/fluxerr_o:.1f}")
                 flux_e, fluxerr_e, eflag_e = sep.sum_circle(
                     img_e, [xe1], [ye1], r=radius, err=bgerr_e, gain=gain,
@@ -303,7 +303,7 @@ if __name__ == "__main__":
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
                 print(f"  flux_e, fluxerr_e, SNR_e = {flux_e:.2f}, {fluxerr_e:.2f}, {flux_e/fluxerr_e:.1f}")
 
-                print(f"Ratio e/o = {flux_e/flux_o}")
+                print(f"  -> Ratio e/o = {flux_e/flux_o}")
                 # Do photometry ===============================================
 
 
