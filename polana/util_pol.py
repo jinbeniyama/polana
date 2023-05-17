@@ -281,7 +281,7 @@ def cor_instpol(
     insrot1err = 0
     insrot2    = np.deg2rad(df[key_insrot2])
     insrot2err = 0
-    print(f"INSROT angle in deg 1, 2 = {insrot1}, {insrot2}")
+    #print(f"INSROT angle in deg 1, 2 = {insrot1}, {insrot2}")
     
     df[key_q_cor] =  (
         df[key_q] - (np.cos(2*insrot1)*qinst - np.sin(2*insrot1)*uinst)
