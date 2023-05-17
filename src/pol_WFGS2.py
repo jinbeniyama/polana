@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Do photometry for images obtained with Nayuta/WFGS2.
-Pixel scale is 0.198 arcsec/pix. (Kawakami+2021, Stars and Galaxies)
+Do photometry of sources in images obtained with Nayuta/WFGS2.
 
 Ordainary and Extra-ordinary sources can be distinguished from the file name.
 The format of input file is as follows:
@@ -18,7 +17,6 @@ HWP-AGL =                 22.5 / Half-wave plate rotation angle (deg)
 The position angle of instumental rotator is saved as INSROT.
 INSROT  =              135.583 / Typical inst rot. Angle ar exp.(degree)
 
-
 Note:
 1. The output time is mid-exposure time (already saved in header as UT-CEN).
 2. theta and theta error are in radians.
@@ -31,6 +29,7 @@ necessary only when determination of coefficients for pa offset correction?
 INST-PA =                  0.0 / Approx PA of instrument (deg)
 Anyway, INSTPA can be ignored in this script because INSTPA=0 for WFGS2 data,
 at least obtained in December 2022.
+5. Pixel scale is 0.198 arcsec/pix. (Kawakami+2021, Stars and Galaxies)
 """
 import os
 import numpy as np
