@@ -52,6 +52,7 @@ def plot_obspolres(
 
     # Weighted mean
     w_P = [1/x**2 for x in df[key_Perr]]
+    print(df[key_thetaerr])
     w_theta = [1/x**2 for x in df[key_thetaerr]]
     wstd_P = np.sqrt(1/np.sum(w_P))
     wstd_theta = np.sqrt(1/np.sum(w_theta))
@@ -75,6 +76,7 @@ def plot_obspolres(
     label = (
         f"{obj} {key}\n" + r"(P, $\theta$) = " 
         + f"({P_percent}" r"$\pm$" + f"{Perr_percent} %, {theta}" + r"$\pm$" + f"{thetaerr} deg)")
+    print(label)
 
     ax.errorbar(
         df[key_q], df[key_u], xerr=df[key_qerr], yerr=df[key_uerr],
