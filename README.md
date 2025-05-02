@@ -1,7 +1,8 @@
 # Polarimetric analysis (polana)
-[developer mail](mailto:beniyama@ioa.s.u-tokyo.ac.jp)
+[developer mail](mailto:jinbeniyama@gmail.com)
 
 The icon of the repository is DIPOL-2 from Piirola et al. (2014).
+This code is used in [Beniyama et al. (2023b)](https://iopscience.iop.org/article/10.3847/1538-4357/ace88f).
 
 ## Overview
 Analyze polarimetric data obtained with 
@@ -11,9 +12,8 @@ Analyze polarimetric data obtained with
 - Hiroshima Optical and Near-InfraRed Camera (HONIR, [Akitaya et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..4OA/abstract)) 
 - Double Image High Precision Polarimeter (DIPOL-2, [Piirola et al. 2014](https://ui.adsabs.harvard.edu/abs/2014SPIE.9147E..8IP/abstract)).
 
-
 ## Installing
-Please install by pip (sorry in prep.), otherwise open paths to src and dipolana directories by yourself.
+Please install by pip (sorry in prep.), otherwise open paths to src and `polana` directories by yourself.
 
 ## Usage
 Before polarimetry, we should check the source location in pixel coordinates
@@ -87,15 +87,11 @@ pol_HONIR.py "HD19820" input.txt  --radius 20 --width 60
 ### 4. DIPOL-2
 In prep.
 
-
 ## Acknowledgments
 I would like to express the gratitude to the people involved in 
 [OISTER](https://oister.kwasan.kyoto-u.ac.jp/) and T60/DIPOL-2.
-
 
 ## Dependencies
 This library is depending on `NumPy`, `SciPy`, `SEP`, and `Astropy`.
 Scripts are developed on `Python 3.7.10`, `NumPy 1.19.2`, `SciPy 1.6.1`, 
 `SEP 1.0.3`, and `Astropy 4.2`.
-
-## LICENCE
