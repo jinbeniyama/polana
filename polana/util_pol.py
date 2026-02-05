@@ -571,9 +571,9 @@ def cor_paoffset(
         if band == "Rc" or "R":
             # From Geem+2022b
             # Seems very good for HD19820 data taken on 2022-12-27 !!
+            # Note that this could be changed.
             theta_off    = 36.8
             theta_offerr = 0.13
-    
 
     # TODO: Why this INSTPA is needed.
     #       I think if INSTPA is fixed and always the same.
