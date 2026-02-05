@@ -19,6 +19,16 @@ Before polarimetry, we should check the source location in pixel coordinates
 by eye using fits viewer such as ds9 and save it as `input.txt`.
 Polarimetric parameters, q, u, P, theta, and their uncertainties, are saved in the output file.
 
+
+### 0. Check useful standard stars
+```
+# Only standards
+python plot_polstandard.py strong nonpol
+# With 1998 KY26 in 2024
+python plot_polstandard.py strong nonpol --obj "1998 KY26" 2024-06-05 2024-06-06
+```
+
+
 ### 1. MSI 
 The 1 set consists of 4 images obtained with angles of half-wave plates at 0, 45, 22.5, and 67.5.
 The format of `input.txt` is as follows:
