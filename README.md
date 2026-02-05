@@ -1,7 +1,6 @@
 # Polarimetric analysis (polana)
 [developer mail](mailto:jinbeniyama@gmail.com)
 
-The icon of the repository is DIPOL-2 from Piirola et al. (2014).
 This code is used in [Beniyama et al. (2023b)](https://iopscience.iop.org/article/10.3847/1538-4357/ace88f).
 
 ## Overview
