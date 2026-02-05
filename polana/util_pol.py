@@ -574,12 +574,14 @@ def cor_paoffset(
             # Note that this could be changed.
             theta_off    = 36.8
             theta_offerr = 0.13
-
-    # TODO: Why this INSTPA is needed.
-    #       I think if INSTPA is fixed and always the same.
-    #       Thus the INSTPA is cancelled out...
-    #       But both Ishiguro+2017 and MSI manual calculate 
-    #       theta_rot with theta_off and INSTPA...
+    
+    # The polarization angle zero-point (theta_offset) can depend on
+    # the instrument angle of rotation, not instrument position angle 
+    # to the North (PA), depending on the optical design. 
+    # This is the case for MSI and WFGS2.
+    # This effect should be considered when you derive qinst, uinst, etc.
+    # Here, instpa is not the instrument angle of rotation, but 
+    # PA. So this is the constant below!
 
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, not zero, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
