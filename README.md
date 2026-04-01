@@ -96,6 +96,27 @@ pol_HONIR.py "HD19820" input.txt  --radius 20 --width 60
 ### 4. DIPOL-2
 In prep.
 
+### 5. FOCAS 
+The 1 set consists of 4 images obtained with angles of half-wave plates at 0, 45, 22.5, and 67.5.
+The format of `input.txt` is as follows:
+(Do not think! Feel the meaning of each column.)
+```
+xo yo xe ye fits
+275 187 240 70 rFCSA00264892.fits
+275 184 240 66 rFCSA00264894.fits
+277 187 242 68 rFCSA00264896.fits
+276 186 242 65 rFCSA00264898.fits
+```
+
+```
+[usage]
+pol_FOCAS.py (object name) (input file)  --radius (circular aperture radius in pixex) --width (width of baricentric search)
+
+[example]
+pol_FOCAS.py "WD1408+323" input.txt  --radius 20 --width 60
+```
+
+
 ## Acknowledgments
 I would like to express the gratitude to the people involved in 
 [OISTER](https://oister.kwasan.kyoto-u.ac.jp/) and T60/DIPOL-2.
