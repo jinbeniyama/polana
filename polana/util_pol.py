@@ -261,6 +261,10 @@ def polana_4angle(df, inst):
     elif inst == "MSI":
         q = (Rq-1)/(Rq+1)
         u = (Ru-1)/(Ru+1)
+    # TODO: Check
+    elif inst == "FOCAS":
+        q = (Rq-1)/(Rq+1)
+        u = (Ru-1)/(Ru+1)
     
     # Random errors
     qerr = np.sqrt(
