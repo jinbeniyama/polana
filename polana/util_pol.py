@@ -257,12 +257,12 @@ def polana_4angle(df, inst):
     if inst == "WFGS2" or inst == "HONIR":
         q = (1-Rq)/(1+Rq)
         u = (1-Ru)/(1+Ru)
-    # See Ishiguro+2017, Kuroda+2018.
-    elif inst == "MSI":
-        q = (Rq-1)/(Rq+1)
-        u = (Ru-1)/(Ru+1)
     # TODO: Check
     elif inst == "FOCAS":
+        q = (1-Rq)/(1+Rq)
+        u = (1-Ru)/(1+Ru)
+    # See Ishiguro+2017, Kuroda+2018.
+    elif inst == "MSI":
         q = (Rq-1)/(Rq+1)
         u = (Ru-1)/(Ru+1)
     
