@@ -338,6 +338,25 @@ if __name__ == "__main__":
                         [Circle((xe1_full, ye1_full), radius)], color=color_e, ls=ls, 
                         lw=1, facecolor="None", label=None)
                         )
+                    if args.ann:
+                        ann_in = radius + ann_gap
+                        ann_out = radius + ann_gap + ann_width
+                        ax.add_collection(PatchCollection(
+                            [Circle((xo1_full, yo1_full), ann_in)], color=color_o, ls="dashed", 
+                            lw=1, facecolor="None", label=None)
+                            )
+                        ax.add_collection(PatchCollection(
+                            [Circle((xo1_full, yo1_full), ann_out)], color=color_o, ls="dashed", 
+                            lw=1, facecolor="None", label=None)
+                            )
+                        ax.add_collection(PatchCollection(
+                            [Circle((xe1_full, ye1_full), ann_in)], color=color_e, ls="dashed", 
+                            lw=1, facecolor="None", label=None)
+                            )
+                        ax.add_collection(PatchCollection(
+                            [Circle((xe1_full, ye1_full), ann_out)], color=color_e, ls="dashed", 
+                            lw=1, facecolor="None", label=None)
+                            )
 
                     ax.set_xlim([0, nx])
                     ax.set_ylim([0, ny])
