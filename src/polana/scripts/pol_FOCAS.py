@@ -85,7 +85,7 @@ def get_args():
     parser.add_argument(
       "--fw", type=int, default=3, 
       help="median filter width and height for bgsubtraction")
-    return = parser.parse_args()
+    return parser.parse_args()
     
 
 def main(args=None):
