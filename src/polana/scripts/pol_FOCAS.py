@@ -59,6 +59,12 @@ def get_args():
         "--ann", action='store_true', default=False,
         help='Do photometry with annulus')
     parser.add_argument(
+        "--ann0", type=float, default=None,
+        help='Inner annulus in pix')
+    parser.add_argument(
+        "--ann1", type=float, default=None,
+        help='Outer annulus in pix')
+    parser.add_argument(
         "--ann_gap", type=float, default=2, 
         help="gap between annulus and circle ")
     parser.add_argument(
@@ -278,9 +284,15 @@ def main(args=None):
 
                 # Do photometry ===============================================
                 if args.ann:
-                    ann_gap = args.ann_gap
-                    ann_width = args.ann_width
-                    bkgann  = (radius + ann_gap, radius + ann_gap + ann_width)
+                    if args.ann0 is not None:
+                        # Inner and outer annulus
+                        ann0 = args.ann0
+                        ann1 = args.ann1
+                        bkgann  = (ann0, ann1)
+                    else:
+                        ann_gap = args.ann_gap
+                        ann_width = args.ann_width
+                        bkgann  = (radius + ann_gap, radius + ann_gap + ann_width)
                 else:
                     bkgann = None
                 # In ADU, 
