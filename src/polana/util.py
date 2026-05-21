@@ -242,4 +242,81 @@ def remove_bg_2d(image, mask=None, bw=64, fw=3):
     bg_info = {'level': bg_global, 'rms': bg_rms}
     bg = bg_engine.back()
     return image, bg_info
+
+
+def obtain_winpos(data, x, y, radius, nx, ny):
+    """ 
+    Obtain windowed centroid xwin and ywin.
+    Note: x and y should be numpy.ndarray
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+      2-d image data
+    x, y : numpy.ndarray
+      location(s) of object(s)
+    radius : float
+      scale related to the area where searched the centroid
+    """
+
+    # Radius should be large enough to obtain total flux
+    # wpos_param: constant to convert `0.5*FWHM` to `sigma` (FWHM = 2.35*sigma) 
+    # 0.5*FWHM*wpos_param = 0.5*FWHM*2/2.35 = sigma
+    wpos_param  = 2.0/2.35
+    # Half flux radius
+    frad_frac   = 0.5
+    frad_subpix = 5
+    frad_ratio  = 5.0
+
+    # Do photometry to obtain all flux
+    # Note1: err and gain are needless for flux estimation
+    # Note2: Sky background should be subtracted (?) 
+
+    # Must need
+    flux,fluxerr,eflag = sep.sum_circle(data, x, y, r=radius)
+
+    # Use only objects with nonzero eflag (?)
+    # Create array like [radius, radius, ... , radius]
+    # Note: radius is not used in flux_radius when normflux is used (?)
+    # r : flux radius, i.e., `0.5*fwhm!`
+    radius = np.full_like(x, radius)
+    r, flag = sep.flux_radius(
+        data, x, y, radius, frad_frac, normflux=flux, subpix=frad_subpix)
+    # r (0.5*FWHM) to sigma (see above)
+    sigma      = wpos_param*r
+    sigma_mean = np.mean(sigma)
+    sigma_std  = np.std(sigma)
+    #print(f"  N={len(sigma)}, calculated in obtain_winpos")
+    #print(f"  sigma: {sigma_mean:.1f}+-{sigma_std:.1f}")
+    #print(f"  FWHM : {2.35*sigma_mean:.1f} (sigma times 2.35)")
+
+    # wflag is always 0 if mask=None
+    # Search winpos with estimated sigma
+
+    # Search narrow region
+    # sigma = 0.5*sigma
+    # Dramatically works bad for faint objects
+    xwin, ywin, wflag = sep.winpos(data, x, y, sigma)
+
+    
+    # If the differences of coordinates are larger than ratio_diff*radius,
+    # for objects more than ratio_obj*N_obj,
+    # print a warning message.
+    # original values as xwin and ywin with eflag_win = 1
+    ratio_diff = 0.3
+    ratio_obj  = 0.5
+    diff = np.sqrt((xwin-x)**2 + (ywin-y)**2)
+    # 1 for large diff, 0 for small diff
+    flag = np.where(diff > ratio_diff*radius, 1, 0)
+    ratio_large_diff= np.sum(flag)/flag.size 
+    if ratio_large_diff > ratio_obj:
+        print(f"      Large winpos correct ratio detected :{ratio_large_diff:.1f}")
+        print(f"      This is just a caution. Please check wcs information etc.")
+
+    # Insert original value when xwin and ywin are outside of FoV
+    xwin = [x if (x < nx) and (x > 0) and (y < ny) and (y > 0) else x0 for x,y,x0 in zip(xwin,ywin,x)]
+    ywin = [y if (x < nx) and (x > 0) and (y < ny) and (y > 0) else y0 for x,y,y0 in zip(xwin,ywin,y)]
+
+    return xwin, ywin, flag
 # Photometry ==================================================================
+
