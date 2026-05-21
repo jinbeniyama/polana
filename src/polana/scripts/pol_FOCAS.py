@@ -27,15 +27,14 @@ from argparse import ArgumentParser as ap
 import sep
 import astropy.io.fits as fits
 
-from polana.util import utc2alphaphi, remove_bg_2d, loc_Subaru
+from polana.util import utc2alphaphi, remove_bg_2d, loc_Subaru, obtain_winpos
 from polana.util_pol import (
     polana_4angle, cor_poleff, cor_instpol, cor_paoffset, 
     calc_Ptheta, projectP2scaplane)
 from polana.visualization import mycolor
-from movphot.photfunc import obtain_winpos
 
 
-if __name__ == "__main__":
+def get_args():
     parser = ap(
         description="Do photometry for images obtained with FOCAS.")
     parser.add_argument(
@@ -86,8 +85,12 @@ if __name__ == "__main__":
     parser.add_argument(
       "--fw", type=int, default=3, 
       help="median filter width and height for bgsubtraction")
-    args = parser.parse_args()
+    return = parser.parse_args()
     
+
+def main(args=None):
+    if args == None:
+        args = get_args()
     outdir = args.outdir
     os.makedirs(outdir, exist_ok=True)
 
@@ -566,3 +569,7 @@ if __name__ == "__main__":
                 "instpa")
 
         df.to_csv(out, sep=" ", index=False)
+
+if __name__ == "__main__":
+    main()
+
