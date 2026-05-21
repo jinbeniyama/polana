@@ -354,8 +354,12 @@ def main(args=None):
                         lw=1, facecolor="None", label=None)
                         )
                     if args.ann:
-                        ann_in = radius + ann_gap
-                        ann_out = radius + ann_gap + ann_width
+                        if args.ann0:
+                            ann_in = args.ann0
+                            ann_out = args.ann1
+                        else:
+                            ann_in = radius + ann_gap
+                            ann_out = radius + ann_gap + ann_width
                         ax.add_collection(PatchCollection(
                             [Circle((xo1_full, yo1_full), ann_in)], color=color_o, ls="dashed", 
                             lw=1, facecolor="None", label=None)
