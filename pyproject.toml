@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polana"
+version = "0.0.1"
+description = "Polarimetric analysis"
+readme = "README.md"
+requires-python = ">=3.9"
+
+authors = [
+  {name = "Jin BENIYAMA", email = "jinbeniyama@gmail.com"}
+]
+
+license = {text = "MIT"}
+
+dependencies = [
+  "numpy",
+  "scipy",
+  "matplotlib",
+  "pandas",
+  "sep",
+  "astropy",
+  "astroquery",
+  "astroscrappy",
+  "scikit-learn",
+  "scikit-image",
+]
+
+[project.scripts]
+pol_FOCAS = "polana.scripts.pol_FOCAS:main"
+
+[project.urls]
+Homepage = "https://bitbucket.org/jin_beniyama/polana/"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
