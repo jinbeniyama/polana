@@ -13,6 +13,7 @@ import sep
 # elevation in km
 loc_Pirka = "Q33"
 loc_Subaru = "T09"
+loc_NOT = "Z23"
 # NHAO: http://www.nhao.jp/research/nayuta_telescope.html
 loc_Nayuta = {
     "lon": 134.3356,
