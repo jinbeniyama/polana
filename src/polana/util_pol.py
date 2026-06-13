@@ -500,6 +500,8 @@ def cor_paoffset(
     key_instpa="INSTPA"):
     """
     Do correction about position angle offset.
+    Important note: You don't need to consider instpa here. 
+    Instrumental polarization may depends on instpa, but not the polarization here.
 
     Parameter
     ---------
