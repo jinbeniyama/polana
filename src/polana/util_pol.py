@@ -261,6 +261,10 @@ def polana_4angle(df, inst):
     elif inst == "FOCAS":
         q = (1-Rq)/(1+Rq)
         u = (1-Ru)/(1+Ru)
+    # TODO: Check
+    elif inst == "FAPOL":
+        q = (1-Rq)/(1+Rq)
+        u = (1-Ru)/(1+Ru)
     # See Ishiguro+2017, Kuroda+2018.
     elif inst == "MSI":
         q = (Rq-1)/(Rq+1)
@@ -579,13 +583,15 @@ def cor_paoffset(
             theta_off    = 36.8
             theta_offerr = 0.13
     
-    # The polarization angle zero-point (theta_offset) can depend on
-    # the instrument angle of rotation, not instrument position angle 
-    # to the North (PA), depending on the optical design. 
-    # This is the case for MSI and WFGS2.
+    # The polarization angle zero-point (theta_offset) does not depend on
+    # the instrument angle of rotation, but instrument position angle to the North (PA).
+    # The instrumental polarization may depends on the instrmental angle of rotation
+    # depending on the optical design. This is the case for MSI and WFGS2. 
+    # (see Ishiguro+2017, Kawakami+2021)
     # This effect should be considered when you derive qinst, uinst, etc.
-    # Here, instpa is not the instrument angle of rotation, but 
-    # PA. So this is the constant below!
+    # (see `cor_instpol` function. insrot is used for correction.)
+    # Here, instpa is not the instrument angle of rotation, but PA. 
+    # So this is the constant (from fits header) below!
 
     # For MSI,   instpa (df[key_instpa]) = -0.52 (fixed, not zero, 2022-12)
     # For WFGS2, instpa (df[key_instpa]) = 0.0 (fixed, 2022-12)
