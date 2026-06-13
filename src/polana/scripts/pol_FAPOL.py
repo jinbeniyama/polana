@@ -11,10 +11,18 @@ right is ordinary, left is extra-ordinary (priv. com. w/ Julia on 2026 June in L
 The retarder plate angle is in OBJECT as well as in FARETANG.
 OBJECT  = 'BDp59389 0deg'      / Object name
 FARETANG= '0.0     '           / Retarder Plate Angle
+However, this is not used in the code. You should make the input file 
+following the standard order. (0, 45, 22.5, 67.5, etc.)
 
 Other angles (FIELD, ROTPOS) are not used in the analysis.
+These are not used to derive theta_off. (priv com. with Julia in La Palma)
 FIELD   =              90.0014 / Field rotation at start
+This is instrumetal angle of rotation (insrot)? or rotator angle?
+Anyway we don't need to consider this if we ignore instrumental polarization.
 ROTPOS  =              26.4258 / Rotator angle at start
+
+Probably instrument position angle to the North (instpa) is not registered in 
+the fits header. Here we assume instpa == 0.
 
 Note:
 1. The output time is mid-exposure time.
@@ -142,13 +150,12 @@ def main(args=None):
     key_ut = "DATE-OBS"
     # In HDU1 
     key_gain = "GAIN"
-    # Instromental rotator angle is in OBJECT
-    # or FARETANG
-    key_insrot = "FARETANG"
 
-    # Rotator angle at start 
-    # This will not be used in the analysis
-    key_instpa = "ROTPOS"
+    # Instrumental rotator angle (to be checked if you correct inst. polarization)
+    key_insrot = "ROTPOS"
+
+    # Probably not registered
+    key_instpa = None
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
     alpha_list, phi_list = [], []
@@ -192,8 +199,10 @@ def main(args=None):
                 # From HDU1
                 gain = hdr1[key_gain]
                 insrot = hdr[key_insrot]
-                print(insrot)
-                instpa = hdr[key_instpa]
+                if key_instpa is None:
+                    instpa = 0
+                else:
+                    instpa = hdr[key_instpa]
                 
                 # Image is in HDU1
                 img = src1.data
