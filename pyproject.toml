@@ -30,6 +30,7 @@ dependencies = [
 
 [project.scripts]
 pol_FOCAS = "polana.scripts.pol_FOCAS:main"
+pol_FAPOL = "polana.scripts.pol_FAPOL:main"
 
 [project.urls]
 Homepage = "https://bitbucket.org/jin_beniyama/polana/"
