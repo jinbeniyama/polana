@@ -8,6 +8,10 @@ Both ordainary and Extra-ordinary sources exist in a single fits.
 
 The position angle of HWP and position angle of instrumental rotator are not saved in the fits header?
 
+
+INSROT: Typical inst. rot. angle at exp.(degree)
+INST-PA: P.A. of Instrument flange (degree)
+
 Note:
 1. The output time is mid-exposure time.
 2. theta and theta error are in radians.
@@ -136,6 +140,7 @@ def main(args=None):
     key_date = "DATE-OBS"
     key_ut = "UT-STR"
     key_gain = "GAIN"
+    # TODO: Confirm 
     key_insrot = "INSROT"
     key_instpa = "INST-PA"
     
