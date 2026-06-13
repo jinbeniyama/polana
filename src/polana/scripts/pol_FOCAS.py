@@ -26,6 +26,8 @@ import pandas as pd
 from argparse import ArgumentParser as ap
 import sep
 import astropy.io.fits as fits
+from matplotlib.patches import Ellipse 
+
 
 from polana.util import utc2alphaphi, remove_bg_2d, loc_Subaru, obtain_winpos
 from polana.util_pol import (
@@ -71,6 +73,15 @@ def get_args():
         "--ann_width", type=float, default=3, 
         help="width of annulus")
     parser.add_argument(
+        "--ell", action='store_true', default=False,
+        help='Do photometry with elliptical aperture')
+    parser.add_argument(
+        "--elong_ratio", dest='elong_ratio', type=float, default=3.0,
+        help='Constant to calculate major axis')
+    parser.add_argument(
+        "--theta", dest='theta', type=float, default=None,
+        help='Position angle from +x to major axis in [-pi/2, pi/2]')
+    parser.add_argument(
         "--band", type=str, default="R", 
         help="Filter (to set gain)")
     parser.add_argument(
@@ -97,6 +108,7 @@ def get_args():
 def main(args=None):
     if args == None:
         args = get_args()
+
     outdir = args.outdir
     os.makedirs(outdir, exist_ok=True)
 
@@ -109,22 +121,23 @@ def main(args=None):
     radius = args.radius
     band = args.band
     inst = "FOCAS"
-    print(f"  Aperture radius {radius} pix")
+    
+    is_ell = getattr(args, 'ell', False)
+    elong_ratio = getattr(args, 'elong_ratio', 1.0)
+    theta = getattr(args, 'theta', 0.0)
+
+    if is_ell:
+        print(f"  Elliptical Photometry: semi-minor={radius} pix, semi-major={radius*elong_ratio} pix, theta={theta} rad")
+    else:
+        print(f"  Aperture radius {radius} pix")
     print(f"  filter {band}-band")
 
     key_texp = "EXPTIME"
     key_date = "DATE-OBS"
-    # [hh:mm:ss.s] UTC at exposure start
     key_ut = "UT-STR"
-    # Inverse gain e/ADU
     key_gain = "GAIN"
-    # The position angle of instument due to rotator is saved as INSROT.
     key_insrot = "INSROT"
-    # Typical postion angle of instrument is saved as INST-PA.
     key_instpa = "INST-PA"
-
-    # 0, 45, 22.5, 67.5 are not written......
-    # So I assume that the fits order is 0, 45, 22.5, and 67.5
     
     u_list, uerr_list, q_list, qerr_list = [], [], [], []
     alpha_list, phi_list = [], []
@@ -136,7 +149,6 @@ def main(args=None):
     fi000_list, fi450_list        = [], []
     fi225_list, fi675_list        = [], []
 
-    # List to save extracted flux
     flux_000_o_list, flux_000_e_list = [], []
     fluxerr_000_o_list, fluxerr_000_e_list = [], []
     flux_450_o_list, flux_450_e_list = [], []
@@ -147,7 +159,6 @@ def main(args=None):
     fluxerr_675_o_list, fluxerr_675_e_list = [], []
 
     for x in args.inp:
-        # Read input files
         df_in = pd.read_csv(x, sep=" ")
         N_fits = len(df_in)
         N_fits_per_set = 4
@@ -156,7 +167,6 @@ def main(args=None):
         for idx_set in range(N_set):
             print("")
             print(f"Start analysis of {idx_set+1}/{N_set}-th set")
-            # List to save results 
             df_res_list = []
             for idx_fi in range(N_fits_per_set):
                 fi = df_in.at[idx_set*N_fits_per_set+idx_fi, "fits"]
@@ -166,31 +176,21 @@ def main(args=None):
                 src = fits.open(fi_path)[0]
                 hdr = src.header 
 
-                # Set inverse gain
-                # Read GAIN in fits header
-                # ex) GAIN    =                 1.65 / [electrons/DN] Effective AD conversion factor
                 gain = hdr[key_gain]
-
-                # Obtain position angle of insrtumental rotator (INSROT) 
                 insrot = hdr[key_insrot]
-                # Obtain position angle of insrtument (INSTPA) 
                 instpa = hdr[key_instpa]
                 
-                # Read 2-d image
                 img = src.data
                 ny, nx = img.shape[0], img.shape[1]
                 print(f"    Data dimension nx, ny = {nx}, {ny}")
-                # Exposure time
                 texp = src.header[key_texp]
                 print(f"    Exposure time {texp} s")
 
-                # Original coordinates
                 xo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xo"]
                 yo0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "yo"]
                 xe0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "xe"]
                 ye0 = df_in.at[idx_set*N_fits_per_set+idx_fi, "ye"]
 
-                # Use around width from (xo0, yo0) and (xe0, ye0)
                 wi = args.width/2.0
 
                 xmin_e, xmax_e = xe0 - wi - 1, xe0 + wi
@@ -205,46 +205,30 @@ def main(args=None):
                 ymin_o, ymax_o = int(ymin_o), int(ymax_o)
                 img_o = img[ymin_o:ymax_o, xmin_o:xmax_o]
 
-                # Save photometry info.
                 info = dict()
                 
-                # Do not work well for MSI data !
-                # Background subtraction ======================================
-                # Convert to float to suppress error
                 img_e = img_e.astype(np.float32)
                 img_o = img_o.astype(np.float32)
-                #print(f"Original Mean: {np.mean(img)}")
-                #print(f"Original Median: {np.median(img)}")
+
                 if args.ann:
                     print("    !! Do not subtract background with sep!!")
-                    # For error calculation in sep.sum_circle
                     bgerr_e = 0
                     bgerr_o = 0
-
                 else:
-                    #img_e, bg_info_e = remove_bg_2d(img_e, bw=100, fw=30)
                     img_e, bg_info_e = remove_bg_2d(img_e, None, args.bw, args.fw)
                     img_o, bg_info_o = remove_bg_2d(img_o, None, args.bw, args.fw)
                     bgerr_e = np.round(bg_info_e["rms"], 2)
                     bgerr_o = np.round(bg_info_o["rms"], 2)
 
-                #print("")
-                #print(f"Subtracted Mean: {np.mean(img)}")
-                #print(f"Subtracted Median: {np.median(img)}")
-                #print(f"Estimated sky error per pixel is {bgerr} [ADU]")
-                #print("")
                 info["gloabalrms_e"] = bgerr_e
                 info["gloabalrms_o"] = bgerr_o
                 info["level_mean_e"] = np.mean(img_e)
                 info["level_mean_o"] = np.mean(img_o)
                 info["level_median_e"] = np.median(img_e)
                 info["level_median_o"] = np.median(img_o)
-                # Background subtraction ======================================
 
-
-                # Source detection for baricentric search =====================
+                # Source detection for baricentric search
                 if args.ann:
-                    # Sky is not subtracted 
                     tmp_img_e = img_e - np.median(img_e)
                     tmp_img_o = img_o - np.median(img_o)
                     tmp_err_e = 1.4826 * np.median(np.abs(tmp_img_e - np.median(tmp_img_e)))
@@ -257,15 +241,10 @@ def main(args=None):
                     tmp_err_e = bgerr_e
                     tmp_err_o = bgerr_o
 
-
-                # 5-sigma detection
                 dth     = 3
                 minarea = 10
-                objects_e = sep.extract(
-                    tmp_img_e, dth, err=tmp_err_e, minarea=minarea, mask=None)
-                objects_o = sep.extract(
-                    tmp_img_o, dth, err=tmp_err_o, minarea=minarea, mask=None)
-
+                objects_e = sep.extract(tmp_img_e, dth, err=tmp_err_e, minarea=minarea, mask=None)
+                objects_o = sep.extract(tmp_img_o, dth, err=tmp_err_o, minarea=minarea, mask=None)
 
                 N_obj_e   = len(objects_e)
                 N_obj_o   = len(objects_o)
@@ -317,9 +296,6 @@ def main(args=None):
                 print(f"    xo0, yo0 = {xo0:.2f}, {yo0:.2f} -> xo1, yo1 = {xo1_full:.2f}, {yo1_full:.2f}")
                 print(f"    xe0, ye0 = {xe0:.2f}, {ye0:.2f} -> xe1, ye1 = {xe1_full:.2f}, {ye1_full:.2f}")
 
-
-                # winpos
-                # initial guesses are returns of sep.extract
                 xwino, ywino, flag = obtain_winpos(img_o, [xo1], [yo1], radius, nx, ny)
                 xwine, ywine, flag = obtain_winpos(img_e, [xe1], [ye1], radius, nx, ny)
                 xwino_full = xwino[0] + xmin_o
@@ -333,44 +309,64 @@ def main(args=None):
                 ye1_full = ywine_full
                 yo1_full = ywino_full
 
-
-                # Source detection ============================================
-
-
                 # Do photometry ===============================================
                 if args.ann:
                     if args.ann0 is not None:
-                        # Inner and outer annulus
                         ann0 = args.ann0
                         ann1 = args.ann1
-                        bkgann  = (ann0, ann1)
                     else:
                         ann_gap = args.ann_gap
                         ann_width = args.ann_width
-                        bkgann  = (radius + ann_gap, radius + ann_gap + ann_width)
+                        ann0 = radius + ann_gap
+                        ann1 = radius + ann_gap + ann_width
+
+                    if args.ell:
+                        # 楕円の場合: 短軸基準の指定を elong_ratio 倍して「長軸」に変換
+                        bkgann = (ann0 * args.elong_ratio, ann1 * args.elong_ratio)
+                    else:
+                        # 真円の場合
+                        bkgann = (ann0, ann1)
                 else:
                     bkgann = None
-                # In ADU, 
-                # fluxerr**2 = bgerr_per_pix**2*N_pix + Poission**2
-                #            = bgerr_per_pix**2*N_pix + (flux*gain)/gain**2
-                flux_o, fluxerr_o, eflag_o = sep.sum_circle(
-                    img_o, [xo1], [yo1], r=radius, err=bgerr_o, gain=gain,
-                    bkgann=bkgann)
+
+                # 測光の実行
+                if args.ell:
+                    # --- 楕円測光 (sep.sum_ellipse) ---
+                    # radius を短軸とし、elong_ratio倍して長軸 a を作る
+                    b_ell = radius
+                    a_ell = b_ell * args.elong_ratio
+                    theta_val = args.theta if args.theta is not None else 0.0
+
+                    flux_o, fluxerr_o, eflag_o = sep.sum_ellipse(
+                        img_o, [xo1], [yo1], a=a_ell, b=b_ell, theta=theta_val, 
+                        err=bgerr_o, gain=gain, bkgann=bkgann)
+                    
+                    flux_e, fluxerr_e, eflag_e = sep.sum_ellipse(
+                        img_e, [xe1], [ye1], a=a_ell, b=b_ell, theta=theta_val, 
+                        err=bgerr_e, gain=gain, bkgann=bkgann)
+                else:
+                    # --- 真円測光 (sep.sum_circle) ---
+                    flux_o, fluxerr_o, eflag_o = sep.sum_circle(
+                        img_o, [xo1], [yo1], r=radius, 
+                        err=bgerr_o, gain=gain, bkgann=bkgann)
+                    
+                    flux_e, fluxerr_e, eflag_e = sep.sum_circle(
+                        img_e, [xe1], [ye1], r=radius, 
+                        err=bgerr_e, gain=gain, bkgann=bkgann)
+
+                # 後処理・出力
                 flux_o, fluxerr_o = float(flux_o), float(fluxerr_o)
-                SNR_o = flux_o/fluxerr_o
+                SNR_o = flux_o / fluxerr_o
                 print(f"  xo0, yo0 = {xo0}, {yo0}")
                 print(f"  flux_o, fluxerr_o, SNR_o = {flux_o:.2f}, {fluxerr_o:.2f}, {SNR_o:.1f}")
-                flux_e, fluxerr_e, eflag_e = sep.sum_circle(
-                    img_e, [xe1], [ye1], r=radius, err=bgerr_e, gain=gain,
-                    bkgann=bkgann)
+
                 flux_e, fluxerr_e = float(flux_e), float(fluxerr_e)
-                SNR_e = flux_e/fluxerr_e
+                SNR_e = flux_e / fluxerr_e
                 print(f"  flux_e, fluxerr_e, SNR_e = {flux_e:.2f}, {fluxerr_e:.2f}, {SNR_e:.1f}")
 
-                print(f"  -> Ratio e/o = {flux_e/flux_o}")
+                print(f"  -> Ratio e/o = {flux_e / flux_o}")
                 # Do photometry ===============================================
 
-                # Rotatie angle 0, 22.5 deg (22.5 deg -> 2250)
                 if idx_fi%4 == 0:
                     ang = 0
                 elif idx_fi%4 == 1:
@@ -385,13 +381,10 @@ def main(args=None):
                 info[f"flux_e"]    = flux_e
                 info[f"fluxerr_e"] = fluxerr_e
                 info["angle"] = f"{int(ang*10):04d}"
-                # pa of rotator
                 info["insrot"] = insrot
                 date = hdr[key_date]
-                # Starting time of exposure
                 utc0 = hdr[key_ut]
                 utc0 = f"{date}T{utc0}"
-                # Convert to mid-time of exposure
                 utc0_dt = datetime.datetime.strptime(utc0, "%Y-%m-%dT%H:%M:%S.%f")
                 utcmid_dt = utc0_dt + datetime.timedelta(seconds=texp)
                 utcmid = datetime.datetime.strftime(utcmid_dt, "%Y-%m-%dT%H:%M:%S.%f")
@@ -404,10 +397,10 @@ def main(args=None):
                 if args.photmap:
                     import matplotlib.pyplot as plt
                     from matplotlib.collections import PatchCollection
-                    from matplotlib.patches import Circle
+                    from matplotlib.patches import Circle, Ellipse  
                     from scipy.stats import sigmaclip
 
-                    out = os.path.join(photmapdir, f"{fi}_photmap.png")
+                    out = os.path.join(photmapdir, f"{fi}_photmap_rad{radius}.png")
                     label_o = (
                         f"{args.obj} o-ray (xo, yo)=({xo1_full:.1f}, {yo1_full:.1f})\n"
                         f"flux={flux_o:.1f}+-{fluxerr_o:.1f} (S/N={SNR_o:.1f})")
@@ -418,11 +411,33 @@ def main(args=None):
                     color_o, color_e = mycolor[0], mycolor[1]
                     ls = "solid"
                     sigma = 3
-                    lw_aperture = 2.0 
+                    lw_aperture = 2.0
 
-                    if args.ann:
+                    if args.ell:
+                        r_min = radius
+                        r_maj = radius * args.elong_ratio
+
+                        ann_in_min = args.ann0 if args.ann0 else radius + args.ann_gap
+                        ann_in_maj = ann_in_min * args.elong_ratio
+
+                        ann_out_min = args.ann1 if args.ann1 else ann_in_min + args.ann_width
+                        ann_out_maj = ann_out_min * args.elong_ratio
+
+                        theta_deg = np.degrees(theta) if args.theta is not None else 0.0
+
+                        cos_t, sin_t = np.cos(np.radians(theta_deg)), np.sin(np.radians(theta_deg))
+                        dx_r = np.sqrt((r_maj * cos_t)**2 + (r_min * sin_t)**2)
+                        dy_r = np.sqrt((r_maj * sin_t)**2 + (r_min * cos_t)**2)
+                        dx_in = np.sqrt((ann_in_maj * cos_t)**2 + (ann_in_min * sin_t)**2)
+                        dy_in = np.sqrt((ann_in_maj * sin_t)**2 + (ann_in_min * cos_t)**2)
+                        dx_out = np.sqrt((ann_out_maj * cos_t)**2 + (ann_out_min * sin_t)**2)
+                        dy_out = np.sqrt((ann_out_maj * sin_t)**2 + (ann_out_min * cos_t)**2)
+                    else:
                         ann_in = args.ann0 if args.ann0 else radius + args.ann_gap
-                        ann_out = args.ann1 if args.ann0 else radius + args.ann_gap + args.ann_width
+                        ann_out = args.ann1 if args.ann1 else radius + args.ann_gap + args.ann_width
+                        dx_r = dy_r = radius
+                        dx_in = dy_in = ann_in
+                        dx_out = dy_out = ann_out
 
                     fig = plt.figure(figsize=(16, 8))
 
@@ -437,10 +452,24 @@ def main(args=None):
                     _, vmin_o, vmax_o = sigmaclip(img_o, sigma, sigma)
                     ax_img_o.imshow(img_o, cmap='gray_r', vmin=vmin_o, vmax=vmax_o)
                     ax_img_o.scatter(xo1, yo1, color=color_o, s=150, lw=lw_aperture, marker="x", alpha=1, label=label_o)
-                    ax_img_o.add_collection(PatchCollection([Circle((xo1, yo1), radius)], color=color_o, ls=ls, lw=lw_aperture, facecolor="None"))
-                    if args.ann:
-                        ax_img_o.add_collection(PatchCollection([Circle((xo1, yo1), ann_in)], color=color_o, ls="dashed", lw=lw_aperture, facecolor="None"))
-                        ax_img_o.add_collection(PatchCollection([Circle((xo1, yo1), ann_out)], color=color_o, ls="dashed", lw=lw_aperture, facecolor="None"))
+
+                    # パッチ表示の切り替え
+                    if args.ell:
+                        # 1. 内側のアパーチャ (実線)
+                        ax_img_o.add_patch(Ellipse((xo1[0], yo1[0]), 2*r_maj, 2*r_min, angle=theta_deg, ec=color_o, ls="solid", lw=lw_aperture, fc="None"))
+
+                        if args.ann:
+                            # 2. 内側のアニュラス境界 (破線)
+                            ax_img_o.add_patch(Ellipse((xo1[0], yo1[0]), 2*ann_in_maj, 2*ann_in_min, angle=theta_deg, ec=color_o, ls="dashed", lw=lw_aperture, fc="None"))
+                            # 3. 外側のアニュラス境界 (破線)
+                            ax_img_o.add_patch(Ellipse((xo1[0], yo1[0]), 2*ann_out_maj, 2*ann_out_min, angle=theta_deg, ec=color_o, ls="dashed", lw=lw_aperture, fc="None"))
+                    else:
+                        ax_img_o.add_patch(Circle((xo1[0], yo1[0]), radius, ec=color_o, ls="solid", lw=lw_aperture, fc="None"))
+                        if args.ann:
+                            ax_img_o.add_patch(Circle((xo1[0], yo1[0]), ann_in, ec=color_o, ls="dashed", lw=lw_aperture, fc="None"))
+                            ax_img_o.add_patch(Circle((xo1[0], yo1[0]), ann_out, ec=color_o, ls="dashed", lw=lw_aperture, fc="None"))
+
+
                     ax_img_o.set_xlabel("x [pix]")
                     ax_img_o.set_ylabel("y [pix]")
                     ax_img_o.set_xlim([0, img_o.shape[1]])
@@ -451,16 +480,16 @@ def main(args=None):
 
                     # --- Top Profile (o-ray) ---
                     xo1_val, yo1_val = xo1[0], yo1[0]
-
                     row_idx_o = np.arange(int(yo1_val)-1, int(yo1_val)+2)
                     row_idx_o = np.clip(row_idx_o, 0, img_o.shape[0]-1)
                     row_prof_o = img_o[row_idx_o, :].mean(axis=0)
                     ax_top_o.plot(np.arange(img_o.shape[1]), row_prof_o, color='gray', lw=1.5)
                     ax_top_o.set_ylabel("Counts")
                     ax_top_o.tick_params(labelbottom=False)
-                    ax_top_o.vlines([xo1_val - radius, xo1_val + radius], ymin=row_prof_o.min(), ymax=row_prof_o.max(), color=color_o, linestyle=ls, lw=lw_aperture)
+
+                    ax_top_o.vlines([xo1_val - dx_r, xo1_val + dx_r], ymin=row_prof_o.min(), ymax=row_prof_o.max(), color=color_o, linestyle=ls, lw=lw_aperture)
                     if args.ann:
-                        ax_top_o.vlines([xo1_val - ann_in, xo1_val + ann_in, xo1_val - ann_out, xo1_val + ann_out], ymin=row_prof_o.min(), ymax=row_prof_o.max(), color=color_o, linestyle='dashed', lw=lw_aperture)
+                        ax_top_o.vlines([xo1_val - dx_in, xo1_val + dx_in, xo1_val - dx_out, xo1_val + dx_out], ymin=row_prof_o.min(), ymax=row_prof_o.max(), color=color_o, linestyle='dashed', lw=lw_aperture)
 
                     # --- Right Profile (o-ray) ---
                     col_idx_o = np.arange(int(xo1_val)-1, int(xo1_val)+2)
@@ -470,11 +499,14 @@ def main(args=None):
                     ax_right_o.set_xlabel("Counts")
                     ax_right_o.tick_params(labelleft=False)
                     ax_right_o.invert_yaxis()
-                    ax_right_o.hlines([yo1_val - radius, yo1_val + radius], xmin=col_prof_o.min(), xmax=col_prof_o.max(), color=color_o, linestyle=ls, lw=lw_aperture)
+
+                    ax_right_o.hlines([yo1_val - dy_r, yo1_val + dy_r], xmin=col_prof_o.min(), xmax=col_prof_o.max(), color=color_o, linestyle=ls, lw=lw_aperture)
                     if args.ann:
-                        ax_right_o.hlines([yo1_val - ann_in, yo1_val + ann_in, yo1_val - ann_out, yo1_val + ann_out], xmin=col_prof_o.min(), xmax=col_prof_o.max(), color=color_o, linestyle='dashed', lw=lw_aperture)
+                        ax_right_o.hlines([yo1_val - dy_in, yo1_val + dy_in, yo1_val - dy_out, yo1_val + dy_out], xmin=col_prof_o.min(), xmax=col_prof_o.max(), color=color_o, linestyle='dashed', lw=lw_aperture)
 
-
+                    # =========================================================
+                    # 2. Extra-ordinary (e-ray)
+                    # =========================================================
                     ax_img_e   = fig.add_axes([0.54, 0.12, 0.34, 0.65])
                     ax_top_e   = fig.add_axes([0.54, 0.78, 0.34, 0.10], sharex=ax_img_e)
                     ax_right_e = fig.add_axes([0.89, 0.12, 0.05, 0.65], sharey=ax_img_e)
@@ -483,10 +515,24 @@ def main(args=None):
                     _, vmin_e, vmax_e = sigmaclip(img_e, sigma, sigma)
                     ax_img_e.imshow(img_e, cmap='gray_r', vmin=vmin_e, vmax=vmax_e)
                     ax_img_e.scatter(xe1, ye1, color=color_e, s=150, lw=lw_aperture, marker="x", alpha=1, label=label_e)
-                    ax_img_e.add_collection(PatchCollection([Circle((xe1, ye1), radius)], color=color_e, ls=ls, lw=lw_aperture, facecolor="None"))
-                    if args.ann:
-                        ax_img_e.add_collection(PatchCollection([Circle((xe1, ye1), ann_in)], color=color_e, ls="dashed", lw=lw_aperture, facecolor="None"))
-                        ax_img_e.add_collection(PatchCollection([Circle((xe1, ye1), ann_out)], color=color_e, ls="dashed", lw=lw_aperture, facecolor="None"))
+
+
+                    # パッチ表示の切り替え
+                    if args.ell:
+                        # 1. 内側のアパーチャ (実線)
+                        ax_img_e.add_patch(Ellipse((xe1[0], ye1[0]), 2*r_maj, 2*r_min, angle=theta_deg, ec=color_e, ls="solid", lw=lw_aperture, fc="None"))
+                        
+                        if args.ann:
+                            # 2. 内側のアニュラス境界 (破線)
+                            ax_img_e.add_patch(Ellipse((xe1[0], ye1[0]), 2*ann_in_maj, 2*ann_in_min, angle=theta_deg, ec=color_e, ls="dashed", lw=lw_aperture, fc="None"))
+                            # 3. 外側のアニュラス境界 (破線)
+                            ax_img_e.add_patch(Ellipse((xe1[0], ye1[0]), 2*ann_out_maj, 2*ann_out_min, angle=theta_deg, ec=color_e, ls="dashed", lw=lw_aperture, fc="None"))
+                    else:
+                        ax_img_e.add_patch(Circle((xe1[0], ye1[0]), radius, ec=color_e, ls="solid", lw=lw_aperture, fc="None"))
+                        if args.ann:
+                            ax_img_e.add_patch(Circle((xe1[0], ye1[0]), ann_in, ec=color_e, ls="dashed", lw=lw_aperture, fc="None"))
+                            ax_img_e.add_patch(Circle((xe1[0], ye1[0]), ann_out, ec=color_e, ls="dashed", lw=lw_aperture, fc="None"))
+
                     ax_img_e.set_xlabel("x [pix]")
                     ax_img_e.set_xlim([0, img_e.shape[1]])
                     ax_img_e.set_ylim([0, img_e.shape[0]])
@@ -496,16 +542,16 @@ def main(args=None):
 
                     # --- Top Profile (e-ray) ---
                     xe1_val, ye1_val = xe1[0], ye1[0]
-
                     row_idx_e = np.arange(int(ye1_val)-1, int(ye1_val)+2)
                     row_idx_e = np.clip(row_idx_e, 0, img_e.shape[0]-1)
                     row_prof_e = img_e[row_idx_e, :].mean(axis=0)
                     ax_top_e.plot(np.arange(img_e.shape[1]), row_prof_e, color='gray', lw=1.5)
                     ax_top_e.set_ylabel("Counts")
                     ax_top_e.tick_params(labelbottom=False)
-                    ax_top_e.vlines([xe1_val - radius, xe1_val + radius], ymin=row_prof_e.min(), ymax=row_prof_e.max(), color=color_e, linestyle=ls, lw=lw_aperture)
+
+                    ax_top_e.vlines([xe1_val - dx_r, xe1_val + dx_r], ymin=row_prof_e.min(), ymax=row_prof_e.max(), color=color_e, linestyle=ls, lw=lw_aperture)
                     if args.ann:
-                        ax_top_e.vlines([xe1_val - ann_in, xe1_val + ann_in, xe1_val - ann_out, xe1_val + ann_out], ymin=row_prof_e.min(), ymax=row_prof_e.max(), color=color_e, linestyle='dashed', lw=lw_aperture)
+                        ax_top_e.vlines([xe1_val - dx_in, xe1_val + dx_in, xe1_val - dx_out, xe1_val + dx_out], ymin=row_prof_e.min(), ymax=row_prof_e.max(), color=color_e, linestyle='dashed', lw=lw_aperture)
 
                     # --- Right Profile (e-ray) ---
                     col_idx_e = np.arange(int(xe1_val)-1, int(xe1_val)+2)
@@ -515,57 +561,20 @@ def main(args=None):
                     ax_right_e.set_xlabel("Counts")
                     ax_right_e.tick_params(labelleft=False)
                     ax_right_e.invert_yaxis()
-                    ax_right_e.hlines([ye1_val - radius, ye1_val + radius], xmin=col_prof_e.min(), xmax=col_prof_e.max(), color=color_e, linestyle=ls, lw=lw_aperture)
+
+                    ax_right_e.hlines([ye1_val - dy_r, ye1_val + dy_r], xmin=col_prof_e.min(), xmax=col_prof_e.max(), color=color_e, linestyle=ls, lw=lw_aperture)
                     if args.ann:
-                        ax_right_e.hlines([ye1_val - ann_in, ye1_val + ann_in, ye1_val - ann_out, ye1_val + ann_out], xmin=col_prof_e.min(), xmax=col_prof_e.max(), color=color_e, linestyle='dashed', lw=lw_aperture)
+                        ax_right_e.hlines([ye1_val - dy_in, ye1_val + dy_in, ye1_val - dy_out, ye1_val + dy_out], xmin=col_prof_e.min(), xmax=col_prof_e.max(), color=color_e, linestyle='dashed', lw=lw_aperture)
 
                     main_title = f"{args.obj} ({band}-band), {fi}, {utcmid}"
                     plt.suptitle(main_title, fontsize=16, fontweight='bold', y=0.96)
 
                     plt.savefig(out, dpi=200)
                     plt.close()
-                # Plot photometry region
 
-
-                # Noise calculation ===========================================
-                # if idx_fi == 0:
-                #     ## Background noise (sum of background + readout)
-                #     med, std = np.median(img), np.std(img)
-                #     #print(f"median, std = {med:.3f}, {std:.3f}")
-                #     #print(f"N_original = {nx*ny}")
-                #     # Clip
-                #     sigma = 3
-                #     for i in range(5):
-                #         img = img[(img < sigma*std) & (img > -sigma*std)]
-                #         std = np.std(img)
-                #         #print(f"N_clipped = {len(img)}")
-                #         #print(f"median, std = {med:.3f}, {std:.3f} (after {i}-th {sigma}-sigma clipping)")
-                #     print(f"Background noise = {std:.3f} ADU/pix")
-                #     print(f", which should be close to bgrms {bgerr:.3f} ADU/pix (returns of sep)\n")
-                #     ## Poission noise 
-                #     # N^2_e = flux_e = flux_ADU*gain(e/ADU)
-                #     # N_ADU = N_e/gain
-                #     # -> N_ADU = sqrt(flux_ADU/gain)
-                #     fluxerr_o_ADU = np.sqrt(flux_o/gain)
-                #     fluxerr_e_ADU = np.sqrt(flux_e/gain)
-                #     print(f"Poisson noise (o, e) = {fluxerr_o_ADU:.2f} {fluxerr_e_ADU:.2f} ADU")
-                #     ## Total noise
-                #     # Circular aperture area in pix
-                #     N_app = np.pi*radius**2
-                #     # Sum of background noise
-                #     std_sum = np.sqrt(N_app)*std
-                #     sumerr_o = adderr(std_sum, fluxerr_o_ADU)
-                #     sumerr_e = adderr(std_sum, fluxerr_e_ADU)
-                #     print(f"Sum of noise (o, e) = {sumerr_o:.2f} {sumerr_e:.2f} ADU")
-                #     print(f", which should be close to fluxerr {fluxerr_o:.3f} and {fluxerr_e:.3f} ADU (returns of sep)\n")
-                # # Noise calculation ===================================================
-
-
-            # 1 set results (Length = 4)
             df_res = pd.concat(df_res_list, axis=0)
             df_res = df_res.reset_index()
 
-        
             # Save flux
             f_000_o    = df_res[df_res["angle"]=="0000"].flux_o.values.tolist()[0]
             ferr_000_o = df_res[df_res["angle"]=="0000"].fluxerr_o.values.tolist()[0]
@@ -601,7 +610,6 @@ def main(args=None):
             flux_675_e_list.append(f_675_e)
             fluxerr_675_e_list.append(ferr_675_e)
 
-            # Calculate linear polarization degree P
             u, uerr, q, qerr  = polana_4angle(df_res, inst)
 
             u_list.append(u)
@@ -609,25 +617,18 @@ def main(args=None):
             q_list.append(q)
             qerr_list.append(qerr)
 
-
-
-            # Position angle of instumental rotator 
-            # 1. theta1 = average of insrot at 0 and 45 
             insrot000 = df_res[df_res["angle"]=="0000"].insrot.values.tolist()[0]
             insrot450 = df_res[df_res["angle"]=="0450"].insrot.values.tolist()[0]
             insrot1   = (insrot000 + insrot450)*0.5
             insrot1_list.append(insrot1)
-            # 2. theta2 = average of insrot at 225 and 675
             insrot225 = df_res[df_res["angle"]=="0225"].insrot.values.tolist()[0]
             insrot675 = df_res[df_res["angle"]=="0675"].insrot.values.tolist()[0]
             insrot2   = (insrot225 + insrot675)*0.5
             insrot2_list.append(insrot2)
 
             texp_list.append(texp)
-            # Fixed value
             instpa_list.append(instpa)
 
-            # UTC
             utc000 = df_res[df_res["angle"]=="0000"].utc.values.tolist()[0]
             utc450 = df_res[df_res["angle"]=="0450"].utc.values.tolist()[0]
             utc225 = df_res[df_res["angle"]=="0225"].utc.values.tolist()[0]
@@ -637,7 +638,6 @@ def main(args=None):
             utc225_list.append(utc225)
             utc675_list.append(utc675)
 
-            # Fits
             fi000 = df_res[df_res["angle"]=="0000"].fits.values.tolist()[0]
             fi450 = df_res[df_res["angle"]=="0450"].fits.values.tolist()[0]
             fi225 = df_res[df_res["angle"]=="0225"].fits.values.tolist()[0]
@@ -648,21 +648,17 @@ def main(args=None):
             fi675_list.append(fi675)
 
             if args.mp:
-                # Obtain phase angle with object name
-                # Use the first time
                 ut = df_res.at[0, "utc"]
                 alpha, phi = utc2alphaphi(args.obj, ut, loc_Subaru)
                 alpha_list.append(alpha)
                 phi_list.append(phi)
 
-        
-        # Round parameters
-        # Save results
         if args.out:
             out = args.out
         else:
             out = "polres_FOCAS.txt"
         out = os.path.join(outdir, out)
+
 
         N = len(u_list)
         if args.mp:
